@@ -33,4 +33,4 @@ export function getCurrentUser() {
 
 export function logoutUser() {
   return csrfPost(`${AUTH_URL}/logout/`)
-}
+} 
