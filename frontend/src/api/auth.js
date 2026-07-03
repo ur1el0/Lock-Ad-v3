@@ -3,7 +3,7 @@ import { client } from './client';
 const AUTH_URL = '/api/auth/';
 
 export async function getCsrfToken() {
-    const data = await client(`${AUTH_URL}csrf/`,)
+    const data = await client(`${AUTH_URL}csrf/`)
     return data.csrfToken;
 }
 
@@ -24,13 +24,13 @@ export function registerUser(userData) {
 }
 
 export function loginUser(credentials) {
-  return csrfPost(`${AUTH_URL}/login/`, credentials)
+  return csrfPost(`${AUTH_URL}login/`, credentials)
 }
 
 export function getCurrentUser() {
-  return client(`${AUTH_URL}/me/`)
+  return client(`${AUTH_URL}me/`)
 }
 
 export function logoutUser() {
-  return csrfPost(`${AUTH_URL}/logout/`)
+  return csrfPost(`${AUTH_URL}logout/`)
 } 
