@@ -42,7 +42,7 @@ export function LoginPage() {
         }
     }
 
-      return (
+  return (
     <main>
       <h1>Log in</h1>
 
