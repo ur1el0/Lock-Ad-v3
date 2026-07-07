@@ -1,6 +1,11 @@
 asgiref==3.11.1
+certifi==2026.6.17
+charset-normalizer==3.4.8
 Django==6.0.6
 djangorestframework==3.17.1
 dotenv==0.9.9
+idna==3.18
 python-dotenv==1.2.2
+requests==2.34.2
 sqlparse==0.5.5
+urllib3==2.7.0
