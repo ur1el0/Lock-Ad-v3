@@ -9,7 +9,7 @@ class RoutePreviewRequestSerializer(serializers.Serializer):
     destination = CoordinateSerializer()
     profile = serializers.ChoiceField(
         choices=['foot-walking'],
-        default=['foot-walking'],
+        default='foot-walking',
         required=False,
     )
 
