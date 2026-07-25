@@ -28,7 +28,7 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
     :param profile: string routing profile
     """
     api_key = get_openrouteservice_api_key()
-    url = f"https://api.openrouteservice/v2/directions/{profile}/geojson"
+    url = f"https://api.openrouteservice.org/v2/directions/{profile}/geojson"
 
     # Header configuration
     headers = {

@@ -3,8 +3,8 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from serializers import RoutePreviewRequestSerializer
-from services import get_route_preview, RoutingConfigurationError, RoutingProviderError
+from navigation.serializers import RoutePreviewRequestSerializer
+from navigation.services import get_route_preview, RoutingConfigurationError, RoutingProviderError
 
 
 @api_view(["POST"])
