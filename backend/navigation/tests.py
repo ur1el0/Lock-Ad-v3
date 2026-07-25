@@ -36,7 +36,7 @@ class RoutePreviewTests(APITestCase):
         response = self.client.post(self.url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['distance_meters'], 1200)
-        self.assertEqual(response.data['provider', 'openrouteservice'])
+        self.assertEqual(response.data['provider'], 'openrouteservice')
 
     def test_identical_coordinates_fails(self):
         """Providing identical origin and destination coordinates should fail validation."""
@@ -55,6 +55,7 @@ class RoutePreviewTests(APITestCase):
         self.client.force_login(self.user)
         mock_get_route.side_effect = RoutingConfigurationError("OpenRouteService API key is  not configured")
         response = self.client.post(self.url, self.valid_payload, format='json')
+        self.assertEqual(response.status_code, status.HTTP_503_SERVICE_UNAVAILABLE)
 
     @patch('navigation.views.get_route_preview')
     def test_provider_error_returns_502(self, mock_get_route):
