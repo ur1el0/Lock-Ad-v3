@@ -1,0 +1,57 @@
+@baseUrl = http://127.0.0.1:8000
+
+### 1. Get CSRF Token
+# @name csrf
+GET {{baseUrl}}/api/auth/csrf/
+Accept: application/json
+
+### Capture the token dynamically from response
+@csrfToken = {{csrf.response.body.csrfToken}}
+
+
+### 2. Register a User
+POST {{baseUrl}}/api/auth/register/
+Content-Type: application/json
+X-CSRFToken: {{csrfToken}}
+
+{
+    "username": "commuter1",
+    "email": "commuter1@example.com",
+    "password": "SecurePassword123!",
+    "password_confirm": "SecurePassword123!"
+}
+
+
+### 3. Login User
+# @name login
+POST {{baseUrl}}/api/auth/login/
+Content-Type: application/json
+X-CSRFToken: {{csrfToken}}
+
+{
+    "username": "commuter1",
+    "password": "SecurePassword123!"
+}
+
+
+### 4. Get Current User Session (Check if Auth works)
+GET {{baseUrl}}/api/auth/me/
+Accept: application/json
+
+
+### 5. Preview Cautious walking route (Requires Authentication)
+POST {{baseUrl}}/api/navigation/routes/preview/
+Content-Type: application/json
+X-CSRFToken: {{csrfToken}}
+
+{
+    "origin": {
+        "lat": 13.9414,
+        "lng": 121.6236
+    },
+    "destination": {
+        "lat": 13.9442,
+        "lng": 121.6179
+    },
+    "profile": "foot-walking"
+}
