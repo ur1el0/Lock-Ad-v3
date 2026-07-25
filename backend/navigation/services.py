@@ -45,7 +45,7 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
     }
 
     try: 
-        response = requests.post(url, headers=headers, timeout=10)
+        response = requests.post(url, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
         data = response.json()
         
