@@ -1,9 +1,8 @@
-import { Route, Routes, useNavigate } from 'react-router-dom'
+import { Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RequireAuth } from './components/RequireAuth'
 import { GuestOnlyRoute } from './components/GuestOnlyRoute'
-import { useAuth } from './hooks/useAuth'
 import { HomePage } from './pages/HomePage'
 
 function App() {
