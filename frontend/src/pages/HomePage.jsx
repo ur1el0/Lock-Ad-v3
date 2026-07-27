@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { getRoutePreview } from "../api/navigation";
 import { APIError } from "../api/client";
+import { Map } from "../components/Map";
 
 export function HomePage() {
     const { user, logout } = useAuth()
@@ -59,10 +60,112 @@ export function HomePage() {
         }
     }
 
-    // 5. Render the UI
+        // 5. Render the UI
     return (
         <div className="app-container">
-        
+            <aside className="sidebar">
+                <div className="sidebar-header">
+                    <h1>Lock-Ad</h1>
+                    <p className="subtitle">Advisory Route Preview</p>
+                </div>
+
+                <div className="user-profile">
+                    <p>Signed in as <strong>{user?.username}</strong></p>
+                    <button onClick={handleLogout} className="btn-secondary btn-sm">
+                        Log out
+                    </button>
+                </div>
+
+                <form onSubmit={handleFetchRoute} className="route-form">
+                    <div className="form-section">
+                        <h3>Origin (Start)</h3>
+                        <div className="input-group">
+                            <input 
+                                type="number" 
+                                step="any"
+                                placeholder="Latitude" 
+                                value={originLat} 
+                                onChange={(e) => setOriginLat(e.target.value)} 
+                                required 
+                            />
+                            <input 
+                                type="number" 
+                                step="any"
+                                placeholder="Longitude" 
+                                value={originLng} 
+                                onChange={(e) => setOriginLng(e.target.value)} 
+                                required 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="form-section">
+                        <h3>Destination (End)</h3>
+                        <div className="input-group">
+                            <input 
+                                type="number" 
+                                step="any"
+                                placeholder="Latitude" 
+                                value={destLat} 
+                                onChange={(e) => setDestLat(e.target.value)} 
+                                required 
+                            />
+                            <input 
+                                type="number" 
+                                step="any"
+                                placeholder="Longitude" 
+                                value={destLng} 
+                                onChange={(e) => setDestLng(e.target.value)} 
+                                required 
+                            />
+                        </div>
+                    </div>
+
+                    <div className="form-section">
+                        <h3>Profile</h3>
+                        <select value={profile} onChange={(e) => setProfile(e.target.value)}>
+                            <option value="foot-walking">Foot Walking</option>
+                        </select>
+                    </div>
+
+                    <button type="submit" disabled={loading} className="btn-primary">
+                        {loading ? 'Fetching route...' : 'Get Route Preview'}
+                    </button>
+                </form>
+
+                {error && (
+                    <div className="error-panel">
+                        <strong>Error:</strong> {error}
+                    </div>
+                )}
+
+                {routeStats && (
+                    <div className="route-details">
+                        <h3>Route Details</h3>
+                        <div className="stats-grid">
+                            <div className="stat-card">
+                                <span className="stat-label">Distance</span>
+                                <span className="stat-value">
+                                    {(routeStats.distance / 1000).toFixed(2)} km
+                                </span>
+                            </div>
+                            <div className="stat-card">
+                                <span className="stat-label">Walking Time</span>
+                                <span className="stat-value">
+                                    {Math.round(routeStats.duration / 60)} mins
+                                </span>
+                            </div>
+                        </div>
+                        <div className="advisory-box">
+                            <p><strong>Advisory Note:</strong> Route guidance is for planning purposes only. Real-world conditions, hazards, construction, lighting, or weather may differ from the map results.</p>
+                        </div>
+                    </div>
+                )}
+            </aside>
+
+            <main className="map-wrapper">
+                <Map routeGeometry={routeGeometry} />
+            </main>
         </div>
     )
 }
