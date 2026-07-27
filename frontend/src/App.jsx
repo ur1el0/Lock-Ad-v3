@@ -4,6 +4,7 @@ import { RegisterPage } from './pages/RegisterPage'
 import { RequireAuth } from './components/RequireAuth'
 import { GuestOnlyRoute } from './components/GuestOnlyRoute'
 import { useAuth } from './hooks/useAuth'
+import { HomePage } from './pages/HomePage'
 
 function HomePage() {
   const { user, logout } = useAuth()
