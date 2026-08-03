@@ -56,6 +56,7 @@ INSTALLED_APPS = [
     'core',
     'accounts',
     'navigation',
+    'safety_data',
 ]
 
 MIDDLEWARE = [
