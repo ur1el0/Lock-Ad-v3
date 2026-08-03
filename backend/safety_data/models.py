@@ -40,11 +40,13 @@ class IncidentReport(models.Model):
     longitude = models.DecimalField(max_digits=12, decimal_places=9)
     status = models.CharField(max_length=20, choices=REPORT_STATUS, default='APPROVED')
     confidence_score = models.IntegerField(default=1)
+    reported_at = models.DateTimeField(auto_now_add=True)
+    occured_at = models.DateTimeField(default=timezone.now)
 
 
 class SafetySignal(models.Model):
-    source = models.CharField(choices=SIGNAL_SOURCES)
-    signal_type = models.CharField(choices=SIGNAL_TYPES)
+    source = models.CharField(max_length=20, choices=SIGNAL_SOURCES)
+    signal_type = models.CharField(max_length=20, choices=SIGNAL_TYPES)
     name = models.CharField(max_length=255)
     latitude = models.DecimalField(max_digits=12, decimal_places=9)
     longitude = models.DecimalField(max_digits=12, decimal_places=9)
