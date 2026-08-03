@@ -40,7 +40,7 @@ class Migration(migrations.Migration):
                 ('status', models.CharField(choices=[('PENDING', 'Pending Review'), ('APPROVED', 'Approved'), ('RESOLVED', 'Resolved'), ('SPAM', 'Spam')], default='APPROVED', max_length=20)),
                 ('confidence_score', models.IntegerField(default=1)),
                 ('reported_at', models.DateTimeField(auto_now_add=True)),
-                ('occured_at', models.DateTimeField(default=django.utils.timezone.now)),
+                ('occurred_at', models.DateTimeField(default=django.utils.timezone.now)),
                 ('user', models.ForeignKey(blank=True, null=True, on_delete=django.db.models.deletion.CASCADE, to=settings.AUTH_USER_MODEL)),
             ],
         ),

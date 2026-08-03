@@ -41,7 +41,7 @@ class IncidentReport(models.Model):
     status = models.CharField(max_length=20, choices=REPORT_STATUS, default='APPROVED')
     confidence_score = models.IntegerField(default=1)
     reported_at = models.DateTimeField(auto_now_add=True)
-    occured_at = models.DateTimeField(default=timezone.now)
+    occurred_at = models.DateTimeField(default=timezone.now)
 
 
 class SafetySignal(models.Model):
