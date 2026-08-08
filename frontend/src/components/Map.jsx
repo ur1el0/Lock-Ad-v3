@@ -1,6 +1,7 @@
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useCallback } from "react";
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
+import { fetchSafetySignals, fetchIncidents } from '../api/safety'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -13,6 +14,43 @@ export function Map({ routeGeometry }) {
     const mapContainerRef = useRef(null)
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
+    const markersLayerRef = useRef(null)
+
+    const loadSafetyData = useCallback(async (map) => {
+        const bounds = map.getBounds();
+        const params = {
+            min_lat: bounds.getSouth(),
+            max_lat: bounds.getNorth(),
+            min_lng: bounds.getWest(),
+            max_lng: bounds.getEast()
+        };
+
+        try {
+            const [signals, incidents] = await Promise.all([
+                fetchSafetySignals(params),
+                fetchIncidents(params)
+            ]);
+
+            if (markersLayerRef.current) {
+                markersLayerRef.current.clearLayers();
+
+                signals.forEach(signal => {
+                    const marker = L.marker([signal.latitude, signal.longitude]);
+                    marker.bindPopup(`<b>${signal.name}</b><br/>${signal.signal_type.replace('_', ' ')}`);
+                    markersLayerRef.current.addLayer(marker);
+                });
+
+                incidents.forEach(incident => {
+                    // In a future update we can use red icons for incidents
+                    const marker = L.marker([incident.latitude, incident.longitude]);
+                    marker.bindPopup(`<b>${incident.incident_type}</b><br/>Status: ${incident.status}`);
+                    markersLayerRef.current.addLayer(marker);
+                });
+            }
+        } catch (err) {
+            console.error("Failed to load safety data:", err);
+        }
+    }, []);
 
     useEffect(() => {
         if (!mapContainerRef.current) return
@@ -24,18 +62,27 @@ export function Map({ routeGeometry }) {
             attribution: '&copy; <a href="https://osm.org/copyright">OpenStreetMap</a> contributors',
         }).addTo(map)
 
+        // Initialize LayerGroup for safety markers
+        markersLayerRef.current = L.layerGroup().addTo(map);
+
+        // Fetch initial data
+        loadSafetyData(map);
+
+        // Fetch data on map move
+        map.on('moveend', () => loadSafetyData(map));
+
         return () => {
             if(mapRef.current) {
+                mapRef.current.off('moveend');
                 mapRef.current.remove()
                 mapRef.current = null
             }
         }
-    }, [])
+    }, [loadSafetyData])
 
     useEffect(() => {
         const map = mapRef.current
         if(!map) return
-
 
         if (geoJsonLayerRef.current) {
             map.removeLayer(geoJsonLayerRef.current)
