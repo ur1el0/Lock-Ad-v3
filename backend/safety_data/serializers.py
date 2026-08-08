@@ -1,15 +1,14 @@
 from os import read
 from rest_framework import  serializers
-from .models import IncidentReport, SafetySignal
+from safety_data.models import IncidentReport, SafetySignal
 
-class IncidentReportSerializer(serializers.Serializer):
+class IncidentReportSerializer(serializers.ModelSerializer):
     class Meta:
         model = IncidentReport
         fields = '__all__'
         read_only_fields = ['user']
 
-class SafetySignalSerializer(serializers.Serializer):
+class SafetySignalSerializer(serializers.ModelSerializer):
     class Meta:
         model = SafetySignal
         fields = '__all__'
-        
