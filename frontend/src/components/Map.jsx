@@ -1,7 +1,8 @@
-import { useEffect, useRef, useCallback } from "react";
+import { useEffect, useRef, useCallback, useState } from "react";
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { fetchSafetySignals, fetchIncidents } from '../api/safety'
+import { ReportModal } from './ReportModal'
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -15,6 +16,9 @@ export function Map({ routeGeometry }) {
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
     const markersLayerRef = useRef(null)
+
+    // Modal state
+    const [reportLocation, setReportLocation] = useState(null)
 
     const loadSafetyData = useCallback(async (map) => {
         const bounds = map.getBounds();
@@ -71,9 +75,15 @@ export function Map({ routeGeometry }) {
         // Fetch data on map move
         map.on('moveend', () => loadSafetyData(map));
 
+        // Right-click / context menu listener
+        map.on('contextmenu', (e) => {
+            setReportLocation(e.latlng)
+        });
+
         return () => {
             if(mapRef.current) {
                 mapRef.current.off('moveend');
+                mapRef.current.off('contextmenu');
                 mapRef.current.remove()
                 mapRef.current = null
             }
@@ -108,9 +118,24 @@ export function Map({ routeGeometry }) {
     },[routeGeometry])
 
     return (
-        <div
-            ref={mapContainerRef}
-            style={{ width: '100%', height: '100%', borderRadius: '12px'}}
-        />
+        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <div
+                ref={mapContainerRef}
+                style={{ width: '100%', height: '100%', borderRadius: '12px'}}
+            />
+            {reportLocation && (
+                <ReportModal
+                    lat={reportLocation.lat}
+                    lng={reportLocation.lng}
+                    onClose={() => setReportLocation(null)}
+                    onSuccess={() => {
+                        setReportLocation(null);
+                        if (mapRef.current) {
+                            loadSafetyData(mapRef.current);
+                        }
+                    }}
+                />
+            )}
+        </div>
     )
 }
