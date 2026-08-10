@@ -21,16 +21,37 @@ export function HomePage() {
     const [routeStats, setRouteStats] = useState(null)
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
+    const [locationLoading, setLocationLoading] = useState(false)
 
-    // 3. Define logout handelr
+    // 4. Define logout handelr
     async function handleLogout() {
         await logout()
         navigate('/login')
     }
 
-    // 4. Define route submit handler
+    // Geolocation for Origin
+    const handleUseCurrentLocation = () => {
+        if (!navigator.geolocation) {
+            setError("Geolocation is not supported by your browser");
+            return;
+        }
+        setLocationLoading(true);
+        navigator.geolocation.getCurrentPosition(
+            (position) => {
+                setOriginLat(position.coords.latitude.toFixed(6));
+                setOriginLng(position.coords.longitude.toFixed(6));
+                setLocationLoading(false);
+            },
+            () => {
+                setError("Unable to retrieve your location");
+                setLocationLoading(false);
+            }
+        );
+    };
+
+    // 5. Define route submit handler
     async function handleFetchRoute(e){
-        e.preventDefault()
+        if (e) e.preventDefault();
         
         setLoading(true)
         setError(null)
@@ -60,7 +81,7 @@ export function HomePage() {
         }
     }
 
-        // 5. Render the UI
+    // 6. Render the UI
     return (
         <div className="app-container">
             <aside className="sidebar">
@@ -78,7 +99,17 @@ export function HomePage() {
 
                 <form onSubmit={handleFetchRoute} className="route-form">
                     <div className="form-section">
-                        <h3>Origin (Start)</h3>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <h3>Origin (Start)</h3>
+                            <button 
+                                type="button" 
+                                onClick={handleUseCurrentLocation}
+                                disabled={locationLoading}
+                                style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                            >
+                                {locationLoading ? '📍 Locating...' : '📍 Use Current Location'}
+                            </button>
+                        </div>
                         <div className="input-group">
                             <input 
                                 type="number" 
@@ -119,6 +150,9 @@ export function HomePage() {
                                 required 
                             />
                         </div>
+                        <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                            Tip: Tap anywhere on the map to easily set a destination.
+                        </p>
                     </div>
 
                     <div className="form-section">
@@ -164,7 +198,13 @@ export function HomePage() {
             </aside>
 
             <main className="map-wrapper">
-                <Map routeGeometry={routeGeometry} />
+                <Map 
+                    routeGeometry={routeGeometry} 
+                    onSetDestination={(latlng) => {
+                        setDestLat(latlng.lat.toFixed(6));
+                        setDestLng(latlng.lng.toFixed(6));
+                    }}
+                />
             </main>
         </div>
     )
