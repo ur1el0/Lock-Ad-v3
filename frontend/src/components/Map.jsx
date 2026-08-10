@@ -8,10 +8,14 @@ delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
     iconRetinaUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon-2x.png',
     iconUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-icon.png',
-    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png'
+    shadowUrl: 'https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.7.1/images/marker-shadow.png',
+    iconSize: [25, 41],
+    iconAnchor: [12, 41],
+    popupAnchor: [1, -34],
+    shadowSize: [41, 41]
 })
 
-export function Map({ routeGeometry }) {
+export function Map({ routeGeometry, onSetDestination }) {
     const mapContainerRef = useRef(null)
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
@@ -19,6 +23,7 @@ export function Map({ routeGeometry }) {
 
     // Modal state
     const [reportLocation, setReportLocation] = useState(null)
+    const [selectedMapLocation, setSelectedMapLocation] = useState(null)
 
     // Internal Filters state
     const [filters, setFilters] = useState({
@@ -100,15 +105,25 @@ export function Map({ routeGeometry }) {
         // Fetch data on map move
         map.on('moveend', () => loadSafetyData(map));
 
-        // Right-click / context menu listener
-        map.on('contextmenu', (e) => {
-            setReportLocation(e.latlng)
+        // Locate current user and drop a marker
+        map.locate({ setView: false, maxZoom: 16 });
+        map.on('locationfound', (e) => {
+            if (!mapRef.current) return; // Prevent crash if map unmounted
+            const radius = e.accuracy / 2;
+            L.marker(e.latlng).addTo(map)
+                .bindPopup(`You are here! (Within ${Math.round(radius)} meters)`).openPopup();
+            L.circle(e.latlng, radius).addTo(map);
+        });
+
+        // Click listener for setting destination or reporting hazard
+        map.on('click', (e) => {
+            setSelectedMapLocation(e.latlng)
         });
 
         return () => {
             if(mapRef.current) {
                 mapRef.current.off('moveend');
-                mapRef.current.off('contextmenu');
+                mapRef.current.off('click');
                 mapRef.current.remove()
                 mapRef.current = null
             }
@@ -204,6 +219,52 @@ export function Map({ routeGeometry }) {
                     </div>
                 </div>
             </div>
+
+            {selectedMapLocation && !reportLocation && (
+                <div style={{
+                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 9999,
+                    display: 'flex', justifyContent: 'center', alignItems: 'center'
+                }}>
+                    <div style={{
+                        background: 'white', padding: '24px', borderRadius: '8px', 
+                        width: '300px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
+                        display: 'flex', flexDirection: 'column', gap: '12px'
+                    }}>
+                        <h3 style={{ marginTop: 0, marginBottom: 0 }}>Map Action</h3>
+                        <p style={{ margin: 0, fontSize: '14px', color: '#555' }}>
+                            {selectedMapLocation.lat.toFixed(4)}, {selectedMapLocation.lng.toFixed(4)}
+                        </p>
+                        
+                        <button 
+                            onClick={() => {
+                                if (onSetDestination) onSetDestination(selectedMapLocation);
+                                setSelectedMapLocation(null);
+                            }} 
+                            style={{ padding: '10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                            📍 Set as Destination
+                        </button>
+                        
+                        <button 
+                            onClick={() => {
+                                setReportLocation(selectedMapLocation);
+                                setSelectedMapLocation(null);
+                            }} 
+                            style={{ padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
+                        >
+                            ⚠️ Report Hazard Here
+                        </button>
+
+                        <button 
+                            onClick={() => setSelectedMapLocation(null)} 
+                            style={{ padding: '10px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '8px' }}
+                        >
+                            Cancel
+                        </button>
+                    </div>
+                </div>
+            )}
 
             {reportLocation && (
                 <ReportModal
