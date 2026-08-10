@@ -22,6 +22,9 @@ export function HomePage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
     const [locationLoading, setLocationLoading] = useState(false)
+    
+    // 3. Trip Tracking State
+    const [isTracking, setIsTracking] = useState(false)
 
     // 4. Define logout handelr
     async function handleLogout() {
@@ -68,7 +71,9 @@ export function HomePage() {
             setRouteStats({
                 distance: data.distance_meters,
                 duration: data.duration_seconds,
-                provider: data.provider
+                provider: data.provider,
+                score: data.safety_score,
+                advisories: data.advisories
             })
         } catch (error) {
             if (error instanceof APIError) {
@@ -81,118 +86,188 @@ export function HomePage() {
         }
     }
 
+    // Determine score color
+    const getScoreColor = (score) => {
+        if (score >= 80) return '#10b981'; // Green
+        if (score >= 50) return '#f59e0b'; // Yellow
+        return '#ef4444'; // Red
+    };
+
+    // Trip Handlers
+    const handleStartTrip = () => {
+        setIsTracking(true);
+    };
+
+    const handleEndTrip = () => {
+        setIsTracking(false);
+    };
+
+    const handleArrived = () => {
+        alert("🎉 You have arrived at your destination!");
+        setIsTracking(false);
+    };
+
     // 6. Render the UI
     return (
         <div className="app-container">
             <aside className="sidebar">
                 <div className="sidebar-header">
                     <h1>Lock-Ad</h1>
-                    <p className="subtitle">Advisory Route Preview</p>
+                    <p className="subtitle">{isTracking ? 'Active Trip' : 'Advisory Route Preview'}</p>
                 </div>
 
                 <div className="user-profile">
                     <p>Signed in as <strong>{user?.username}</strong></p>
-                    <button onClick={handleLogout} className="btn-secondary btn-sm">
+                    <button onClick={handleLogout} className="btn-secondary btn-sm" disabled={isTracking}>
                         Log out
                     </button>
                 </div>
 
-                <form onSubmit={handleFetchRoute} className="route-form">
-                    <div className="form-section">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            <h3>Origin (Start)</h3>
-                            <button 
-                                type="button" 
-                                onClick={handleUseCurrentLocation}
-                                disabled={locationLoading}
-                                style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', padding: 0 }}
-                            >
-                                {locationLoading ? '📍 Locating...' : '📍 Use Current Location'}
+                {!isTracking ? (
+                    <>
+                        <form onSubmit={handleFetchRoute} className="route-form">
+                            <div className="form-section">
+                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                    <h3>Origin (Start)</h3>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleUseCurrentLocation}
+                                        disabled={locationLoading}
+                                        style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', padding: 0 }}
+                                    >
+                                        {locationLoading ? '📍 Locating...' : '📍 Use Current Location'}
+                                    </button>
+                                </div>
+                                <div className="input-group">
+                                    <input 
+                                        type="number" 
+                                        step="any"
+                                        placeholder="Latitude" 
+                                        value={originLat} 
+                                        onChange={(e) => setOriginLat(e.target.value)} 
+                                        required 
+                                    />
+                                    <input 
+                                        type="number" 
+                                        step="any"
+                                        placeholder="Longitude" 
+                                        value={originLng} 
+                                        onChange={(e) => setOriginLng(e.target.value)} 
+                                        required 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-section">
+                                <h3>Destination (End)</h3>
+                                <div className="input-group">
+                                    <input 
+                                        type="number" 
+                                        step="any"
+                                        placeholder="Latitude" 
+                                        value={destLat} 
+                                        onChange={(e) => setDestLat(e.target.value)} 
+                                        required 
+                                    />
+                                    <input 
+                                        type="number" 
+                                        step="any"
+                                        placeholder="Longitude" 
+                                        value={destLng} 
+                                        onChange={(e) => setDestLng(e.target.value)} 
+                                        required 
+                                    />
+                                </div>
+                                <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
+                                    Tip: Tap anywhere on the map to easily set a destination.
+                                </p>
+                            </div>
+
+                            <div className="form-section">
+                                <h3>Profile</h3>
+                                <select value={profile} onChange={(e) => setProfile(e.target.value)}>
+                                    <option value="foot-walking">Foot Walking</option>
+                                </select>
+                            </div>
+
+                            <button type="submit" disabled={loading} className="btn-primary">
+                                {loading ? 'Fetching route...' : 'Get Route Preview'}
                             </button>
-                        </div>
-                        <div className="input-group">
-                            <input 
-                                type="number" 
-                                step="any"
-                                placeholder="Latitude" 
-                                value={originLat} 
-                                onChange={(e) => setOriginLat(e.target.value)} 
-                                required 
-                            />
-                            <input 
-                                type="number" 
-                                step="any"
-                                placeholder="Longitude" 
-                                value={originLng} 
-                                onChange={(e) => setOriginLng(e.target.value)} 
-                                required 
-                            />
-                        </div>
-                    </div>
+                        </form>
 
-                    <div className="form-section">
-                        <h3>Destination (End)</h3>
-                        <div className="input-group">
-                            <input 
-                                type="number" 
-                                step="any"
-                                placeholder="Latitude" 
-                                value={destLat} 
-                                onChange={(e) => setDestLat(e.target.value)} 
-                                required 
-                            />
-                            <input 
-                                type="number" 
-                                step="any"
-                                placeholder="Longitude" 
-                                value={destLng} 
-                                onChange={(e) => setDestLng(e.target.value)} 
-                                required 
-                            />
-                        </div>
-                        <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                            Tip: Tap anywhere on the map to easily set a destination.
-                        </p>
-                    </div>
-
-                    <div className="form-section">
-                        <h3>Profile</h3>
-                        <select value={profile} onChange={(e) => setProfile(e.target.value)}>
-                            <option value="foot-walking">Foot Walking</option>
-                        </select>
-                    </div>
-
-                    <button type="submit" disabled={loading} className="btn-primary">
-                        {loading ? 'Fetching route...' : 'Get Route Preview'}
-                    </button>
-                </form>
-
-                {error && (
-                    <div className="error-panel">
-                        <strong>Error:</strong> {error}
-                    </div>
-                )}
-
-                {routeStats && (
-                    <div className="route-details">
-                        <h3>Route Details</h3>
-                        <div className="stats-grid">
-                            <div className="stat-card">
-                                <span className="stat-label">Distance</span>
-                                <span className="stat-value">
-                                    {(routeStats.distance / 1000).toFixed(2)} km
-                                </span>
+                        {error && (
+                            <div className="error-panel">
+                                <strong>Error:</strong> {error}
                             </div>
-                            <div className="stat-card">
-                                <span className="stat-label">Walking Time</span>
-                                <span className="stat-value">
-                                    {Math.round(routeStats.duration / 60)} mins
-                                </span>
+                        )}
+
+                        {routeStats && (
+                            <div className="route-details">
+                                <h3>Route Details</h3>
+                                <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
+                                    <div className="stat-card">
+                                        <span className="stat-label">Distance</span>
+                                        <span className="stat-value">
+                                            {(routeStats.distance / 1000).toFixed(2)} km
+                                        </span>
+                                    </div>
+                                    <div className="stat-card">
+                                        <span className="stat-label">Walking Time</span>
+                                        <span className="stat-value">
+                                            {Math.round(routeStats.duration / 60)} mins
+                                        </span>
+                                    </div>
+                                    <div className="stat-card" style={{ borderColor: getScoreColor(routeStats.score), borderWidth: '2px', borderStyle: 'solid' }}>
+                                        <span className="stat-label" style={{ color: getScoreColor(routeStats.score) }}>Safety Score</span>
+                                        <span className="stat-value" style={{ color: getScoreColor(routeStats.score) }}>
+                                            {routeStats.score}/100
+                                        </span>
+                                    </div>
+                                </div>
+                                
+                                <div className="advisory-box">
+                                    <h4 style={{ marginTop: 0, marginBottom: '8px', fontSize: '13px' }}>Route Insights:</h4>
+                                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', color: '#374151' }}>
+                                        {routeStats.advisories && routeStats.advisories.map((adv, idx) => (
+                                            <li key={idx} style={{ marginBottom: '4px' }}>{adv}</li>
+                                        ))}
+                                    </ul>
+                                    <p style={{ marginTop: '12px', fontSize: '11px', fontStyle: 'italic', color: '#6b7280' }}>
+                                        Advisory Note: Route guidance is for planning purposes only. Real-world conditions may differ.
+                                    </p>
+                                </div>
+
+                                <button 
+                                    onClick={handleStartTrip} 
+                                    style={{ marginTop: '16px', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
+                                >
+                                    🚶‍♂️ Start Trip
+                                </button>
                             </div>
+                        )}
+                    </>
+                ) : (
+                    <div className="active-trip-panel" style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
+                        <div style={{
+                            width: '80px', height: '80px', borderRadius: '50%', background: '#d1fae5', color: '#10b981', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '16px'
+                        }}>
+                            📍
                         </div>
-                        <div className="advisory-box">
-                            <p><strong>Advisory Note:</strong> Route guidance is for planning purposes only. Real-world conditions, hazards, construction, lighting, or weather may differ from the map results.</p>
+                        <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', color: '#111827' }}>Tracking Active</h2>
+                        <p style={{ color: '#4b5563', marginBottom: '24px' }}>Follow the blue path on the map. Your location is being tracked in real-time.</p>
+                        
+                        <div style={{ width: '100%', padding: '16px', background: '#f3f4f6', borderRadius: '8px', marginBottom: '24px' }}>
+                            <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold' }}>Destination</p>
+                            <p style={{ margin: 0, fontSize: '14px', fontFamily: 'monospace' }}>{destLat}, {destLng}</p>
                         </div>
+
+                        <button 
+                            onClick={handleEndTrip} 
+                            style={{ padding: '12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
+                        >
+                            🛑 End Trip
+                        </button>
                     </div>
                 )}
             </aside>
@@ -204,6 +279,9 @@ export function HomePage() {
                         setDestLat(latlng.lat.toFixed(6));
                         setDestLng(latlng.lng.toFixed(6));
                     }}
+                    isTracking={isTracking}
+                    destination={{lat: parseFloat(destLat), lng: parseFloat(destLng)}}
+                    onArrived={handleArrived}
                 />
             </main>
         </div>
