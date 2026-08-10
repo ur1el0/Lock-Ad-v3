@@ -1,6 +1,7 @@
 from time import time
 import requests
 from django.conf import settings
+from safety_data.models import IncidentReport
 
 # 1. Custom Exceptions
 class RoutingConfigurationError(Exception):
@@ -44,6 +45,39 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
         ]
     }
 
+    active_incidents = IncidentReport.objects.exclude(status__in=['RESOLVED', 'SPAM'])
+
+    avoid_polygons_coords = []
+
+    # ~11 meter radius buffer (0.0001 degrees)
+    buffer = 0.0001
+
+    for incident in active_incidents:
+        lat = float(incident.latitude)
+        lng = float(incident.longitude)
+
+        # ORS expects [longitude, latitute ] arrays
+        # We define the 4 corners of the square, repeat the first point to close it.
+        polygon = [
+            [
+                [lng - buffer, lat - buffer],
+                [lng + buffer, lat - buffer],
+                [lng + buffer, lat + buffer],
+                [lng - buffer, lat + buffer],
+                [lng - buffer, lat - buffer],
+            ]
+        ]
+        avoid_polygons_coords.append(polygon)
+
+    if avoid_polygons_coords:
+        payload["options"] = {
+            "avoid_polygons": {
+                "type": "MultiPolygon",
+                "coordinates": avoid_polygons_coords
+            }
+        }
+
+            
     try: 
         response = requests.post(url, json=payload, headers=headers, timeout=10)
         response.raise_for_status()
@@ -69,4 +103,9 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
     except requests.exceptions.Timeout:
         raise RoutingProviderError("Routing provider request timed out.")
     except requests.exceptions.RequestException as e:
-        raise RoutingProviderError(f"Routing provider error: {str(e)}")
+        error_msg = f"Routing provider error: {str(e)}"
+        if hasattr(e, 'response') and e.response is not None:
+            if e.response.status_code == 404:
+                raise RoutingProviderError("No route found! The hazard is blocking the only available path, or it is placed directly on your origin/destination.")
+            error_msg += f" | Details: {e.response.text}"
+        raise RoutingProviderError(error_msg)
