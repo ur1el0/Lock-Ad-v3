@@ -22,13 +22,29 @@ export function HomePage() {
     const [loading, setLoading] = useState(false)
     const [error, setError] = useState(null)
 
-    // 3. Define logout handelr
+    // 3. Map Filters state
+    const [filters, setFilters] = useState({
+        signals: { CCTV: true, LIGHT: true, POLICE: true, MEDICAL: true },
+        incidents: { LIGHTING: true, HAZARD: true, INCIDENT: true, ACCIDENT: true }
+    });
+
+    const handleFilterChange = (category, type) => {
+        setFilters(prev => ({
+            ...prev,
+            [category]: {
+                ...prev[category],
+                [type]: !prev[category][type]
+            }
+        }));
+    };
+
+    // 4. Define logout handelr
     async function handleLogout() {
         await logout()
         navigate('/login')
     }
 
-    // 4. Define route submit handler
+    // 5. Define route submit handler
     async function handleFetchRoute(e){
         e.preventDefault()
         
@@ -60,7 +76,7 @@ export function HomePage() {
         }
     }
 
-        // 5. Render the UI
+    // 6. Render the UI
     return (
         <div className="app-container">
             <aside className="sidebar">

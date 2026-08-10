@@ -38,7 +38,7 @@ class IncidentReport(models.Model):
     description = models.TextField(blank=True, null=True)
     latitude = models.DecimalField(max_digits=12, decimal_places=9)
     longitude = models.DecimalField(max_digits=12, decimal_places=9)
-    status = models.CharField(max_length=20, choices=REPORT_STATUS, default='APPROVED')
+    status = models.CharField(max_length=20, choices=REPORT_STATUS, default='PENDING')
     confidence_score = models.IntegerField(default=1)
     reported_at = models.DateTimeField(auto_now_add=True)
     occurred_at = models.DateTimeField(default=timezone.now)
