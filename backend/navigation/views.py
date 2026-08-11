@@ -30,5 +30,18 @@ def route_preview_view(request):
         return Response(
             {'detail': str(e)},
             status=status.HTTP_502_BAD_GATEWAY
-        
         )
+
+from rest_framework import viewsets
+from .models import SavedRoute
+from .serializers import SavedRouteSerializer
+
+class SavedRouteViewSet(viewsets.ModelViewSet):
+    serializer_class = SavedRouteSerializer
+    permission_classes = [IsAuthenticated]
+
+    def get_queryset(self):
+        return SavedRoute.objects.filter(user=self.request.user)
+
+    def perform_create(self, serializer):
+        serializer.save(user=self.request.user)
