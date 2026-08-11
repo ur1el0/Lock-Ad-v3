@@ -1,7 +1,8 @@
-import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
 import { getRoutePreview } from "../api/navigation";
+import { getEmergencyContacts } from "../api/emergency";
 import { APIError } from "../api/client";
 import { Map } from "../components/Map";
 
@@ -23,8 +24,16 @@ export function HomePage() {
     const [error, setError] = useState(null)
     const [locationLoading, setLocationLoading] = useState(false)
     
-    // 3. Trip Tracking State
+    // 3. Trip Tracking & Emergency Contacts State
     const [isTracking, setIsTracking] = useState(false)
+    const [emergencyContacts, setEmergencyContacts] = useState([])
+
+    // Fetch emergency contacts when tracking starts
+    useEffect(() => {
+        if (isTracking) {
+            getEmergencyContacts().then(setEmergencyContacts).catch(err => console.error("Failed to fetch contacts", err));
+        }
+    }, [isTracking]);
 
     // 4. Define logout handelr
     async function handleLogout() {
@@ -117,7 +126,12 @@ export function HomePage() {
                 </div>
 
                 <div className="user-profile">
-                    <p>Signed in as <strong>{user?.username}</strong></p>
+                    <div>
+                        <p style={{ margin: 0 }}>Signed in as <strong>{user?.username}</strong></p>
+                        <Link to="/contacts" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}>
+                            Manage Emergency Contacts
+                        </Link>
+                    </div>
                     <button onClick={handleLogout} className="btn-secondary btn-sm" disabled={isTracking}>
                         Log out
                     </button>
@@ -262,9 +276,36 @@ export function HomePage() {
                             <p style={{ margin: 0, fontSize: '14px', fontFamily: 'monospace' }}>{destLat}, {destLng}</p>
                         </div>
 
+                        {/* SOS Quick Dial Section */}
+                        <div style={{ width: '100%', marginBottom: '24px', textAlign: 'left' }}>
+                            <h3 style={{ fontSize: '16px', color: '#111827', marginBottom: '12px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' }}>SOS Quick-Dial</h3>
+                            {emergencyContacts.length > 0 ? (
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                                    {emergencyContacts.map(c => (
+                                        <a key={c.id} href={`tel:${c.phone_number}`} style={{ 
+                                            display: 'block', padding: '12px', background: '#fee2e2', color: '#dc2626', 
+                                            textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center',
+                                            border: '1px solid #fca5a5'
+                                        }}>
+                                            📞 Call {c.name} ({c.relationship})
+                                        </a>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic', margin: '0 0 12px 0' }}>No emergency contacts saved.</p>
+                            )}
+                            
+                            <a href="tel:911" style={{ 
+                                display: 'block', padding: '12px', background: '#ef4444', color: 'white', 
+                                textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', marginTop: '12px'
+                            }}>
+                                🚨 Call Local Emergency (911)
+                            </a>
+                        </div>
+
                         <button 
                             onClick={handleEndTrip} 
-                            style={{ padding: '12px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
+                            style={{ padding: '12px', background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
                         >
                             🛑 End Trip
                         </button>
