@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { getRoutePreview } from "../api/navigation";
+import { getRoutePreview, getSavedRoutes, createSavedRoute } from "../api/navigation";
 import { getEmergencyContacts } from "../api/emergency";
 import { APIError } from "../api/client";
 import { Map } from "../components/Map";
@@ -27,6 +27,15 @@ export function HomePage() {
     // 3. Trip Tracking & Emergency Contacts State
     const [isTracking, setIsTracking] = useState(false)
     const [emergencyContacts, setEmergencyContacts] = useState([])
+    
+    // 4. Saved Routes
+    const [savedRoutes, setSavedRoutes] = useState([])
+    const [savingRoute, setSavingRoute] = useState(false)
+
+    // Initial data fetch
+    useEffect(() => {
+        getSavedRoutes().then(setSavedRoutes).catch(err => console.error("Failed to fetch saved routes", err));
+    }, []);
 
     // Fetch emergency contacts when tracking starts
     useEffect(() => {
@@ -59,6 +68,37 @@ export function HomePage() {
                 setLocationLoading(false);
             }
         );
+    };
+
+    // Quick select saved route
+    const handleSelectSavedRoute = (route) => {
+        setOriginLat(route.origin_lat);
+        setOriginLng(route.origin_lng);
+        setDestLat(route.dest_lat);
+        setDestLng(route.dest_lng);
+    };
+
+    // Save current route
+    const handleSaveRoute = async () => {
+        const name = window.prompt("Enter a name for this route (e.g. Home to Campus):");
+        if (!name) return;
+        
+        setSavingRoute(true);
+        try {
+            const newRoute = await createSavedRoute({
+                name,
+                origin_lat: parseFloat(originLat),
+                origin_lng: parseFloat(originLng),
+                dest_lat: parseFloat(destLat),
+                dest_lng: parseFloat(destLng)
+            });
+            setSavedRoutes([newRoute, ...savedRoutes]);
+            alert("Route saved successfully!");
+        } catch (err) {
+            alert("Failed to save route. Please try again.");
+        } finally {
+            setSavingRoute(false);
+        }
     };
 
     // 5. Define route submit handler
@@ -139,6 +179,24 @@ export function HomePage() {
 
                 {!isTracking ? (
                     <>
+                        {savedRoutes.length > 0 && (
+                            <div style={{ padding: '0 24px 16px 24px' }}>
+                                <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Quick Select</p>
+                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
+                                    {savedRoutes.map(r => (
+                                        <button 
+                                            key={r.id} 
+                                            type="button"
+                                            onClick={() => handleSelectSavedRoute(r)}
+                                            style={{ padding: '6px 12px', fontSize: '13px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '16px', cursor: 'pointer' }}
+                                        >
+                                            ⭐ {r.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+
                         <form onSubmit={handleFetchRoute} className="route-form">
                             <div className="form-section">
                                 <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -256,6 +314,14 @@ export function HomePage() {
                                     style={{ marginTop: '16px', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
                                 >
                                     🚶‍♂️ Start Trip
+                                </button>
+                                
+                                <button 
+                                    onClick={handleSaveRoute}
+                                    disabled={savingRoute}
+                                    style={{ marginTop: '8px', padding: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', width: '100%' }}
+                                >
+                                    {savingRoute ? 'Saving...' : '⭐ Save Route'}
                                 </button>
                             </div>
                         )}
