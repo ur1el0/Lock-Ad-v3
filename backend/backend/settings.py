@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'accounts',
     'navigation',
     'safety_data',
+    'emergency',
 ]
 
 MIDDLEWARE = [
