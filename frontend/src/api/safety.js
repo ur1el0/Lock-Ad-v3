@@ -1,5 +1,5 @@
 import { client } from './client';
-import { getCsrfToken } from './token'
+import { getCsrfToken } from './auth'
 
 export async function getAllIncidentReports() {
     return client('/api/safety/incidents/')
