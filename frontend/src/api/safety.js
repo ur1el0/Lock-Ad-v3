@@ -1,34 +1,18 @@
 import { client } from './client';
-import { getCsrfToken } from './auth';
+import { getCsrfToken } from './token'
 
-export async function fetchSafetySignals({ min_lat, max_lat, min_lng, max_lng }) {
-    const params = new URLSearchParams({
-        min_lat,
-        max_lat,
-        min_lng,
-        max_lng,
-    });
-    return client(`/api/safety/signals/?${params.toString()}`);
+export async function getAllIncidentReports() {
+    return client('/api/safety/incidents/')
 }
-
-export async function fetchIncidents({ min_lat, max_lat, min_lng, max_lng }) {
-    const params = new URLSearchParams({
-        min_lat,
-        max_lat,
-        min_lng,
-        max_lng,
-    });
-    return client(`/api/safety/incidents/?${params.toString()}`);
-}
-
-export async function createIncident(data) {
-    const csrfToken = await getCsrfToken();
-    return client('/api/safety/incidents/', {
-        method: 'POST',
-        headers: {
-            'X-CSRFToken': csrfToken
-        },
+    
+export async function updateIncidentReport(id, data )   {
+    const csrfToken = await getCsrfToken()
+    return client(`/api/safety/incidents/${id}`, {
+        method: 'PATCH',
         body: data,
-    });
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
+    })
 }
 

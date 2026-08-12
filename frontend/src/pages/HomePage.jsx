@@ -168,14 +168,24 @@ export function HomePage() {
                 <div className="user-profile">
                     <div>
                         <p style={{ margin: 0 }}>Signed in as <strong>{user?.username}</strong></p>
-                        <Link to="/contacts" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}>
-                            Manage Emergency Contacts
-                        </Link>
+                        
+                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
+                            <Link to="/contacts" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}>
+                                Manage Emergency Contacts
+                            </Link>
+                            
+                            {user?.is_staff && (
+                                <Link to="/moderator" style={{ fontSize: '12px', color: '#dc2626', textDecoration: 'none', fontWeight: 'bold' }}>
+                                    🛡️ Moderator Dashboard
+                                </Link>
+                            )}
+                        </div>
                     </div>
                     <button onClick={handleLogout} className="btn-secondary btn-sm" disabled={isTracking}>
                         Log out
                     </button>
                 </div>
+
 
                 {!isTracking ? (
                     <>
