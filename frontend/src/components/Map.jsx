@@ -15,11 +15,19 @@ L.Icon.Default.mergeOptions({
     shadowSize: [41, 41]
 })
 
-export function Map({ routeGeometry, onSetDestination }) {
+const liveLocationIcon = L.divIcon({
+    className: 'live-location-icon',
+    html: `<div style="width: 16px; height: 16px; background-color: #3b82f6; border: 3px solid white; border-radius: 50%; box-shadow: 0 0 10px rgba(59, 130, 246, 0.8); animation: pulse 2s infinite;"></div>`,
+    iconSize: [16, 16],
+    iconAnchor: [8, 8]
+});
+
+export function Map({ routeGeometry, onSetDestination, isTracking, destination, onArrived }) {
     const mapContainerRef = useRef(null)
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
     const markersLayerRef = useRef(null)
+    const liveMarkerRef = useRef(null)
 
     // Modal state
     const [reportLocation, setReportLocation] = useState(null)
@@ -108,7 +116,7 @@ export function Map({ routeGeometry, onSetDestination }) {
         // Locate current user and drop a marker
         map.locate({ setView: false, maxZoom: 16 });
         map.on('locationfound', (e) => {
-            if (!mapRef.current) return; // Prevent crash if map unmounted
+            if (!mapRef.current) return;
             const radius = e.accuracy / 2;
             L.marker(e.latlng).addTo(map)
                 .bindPopup(`You are here! (Within ${Math.round(radius)} meters)`).openPopup();
@@ -128,9 +136,8 @@ export function Map({ routeGeometry, onSetDestination }) {
                 mapRef.current = null
             }
         }
-    }, []) // Init only once
+    }, [])
 
-    // Re-evaluate when filters change
     useEffect(() => {
         if (mapRef.current) {
             loadSafetyData(mapRef.current);
@@ -158,69 +165,171 @@ export function Map({ routeGeometry, onSetDestination }) {
             geoJsonLayerRef.current = geoJsonLayer    
             
             const bounds = geoJsonLayer.getBounds()
-            if(bounds.isValid()) {
+            if(bounds.isValid() && !isTracking) {
                 map.fitBounds(bounds, { padding: [50, 50] })
             }
         }
-    },[routeGeometry])
+    },[routeGeometry, isTracking])
+
+    useEffect(() => {
+        let watchId;
+        const map = mapRef.current;
+
+        if (isTracking && map) {
+            watchId = navigator.geolocation.watchPosition(
+                (position) => {
+                    const { latitude, longitude } = position.coords;
+                    const latlng = L.latLng(latitude, longitude);
+
+                    if (!liveMarkerRef.current) {
+                        liveMarkerRef.current = L.marker(latlng, { icon: liveLocationIcon, zIndexOffset: 1000 }).addTo(map);
+                    } else {
+                        liveMarkerRef.current.setLatLng(latlng);
+                    }
+
+                    map.panTo(latlng, { animate: true, duration: 1.0 });
+
+                    if (destination && onArrived) {
+                        const destLatLng = L.latLng(destination.lat, destination.lng);
+                        const distance = map.distance(latlng, destLatLng);
+                        
+                        if (distance <= 20) {
+                            onArrived();
+                        }
+                    }
+                },
+                (error) => {
+                    console.error("Error watching position:", error);
+                },
+                {
+                    enableHighAccuracy: true,
+                    maximumAge: 0,
+                    timeout: 5000
+                }
+            );
+        } else {
+            if (liveMarkerRef.current && map) {
+                map.removeLayer(liveMarkerRef.current);
+                liveMarkerRef.current = null;
+            }
+        }
+
+        return () => {
+            if (watchId !== undefined) {
+                navigator.geolocation.clearWatch(watchId);
+            }
+        };
+    }, [isTracking, destination, onArrived]);
+
+    // WebSocket for Real-Time Incidents
+    useEffect(() => {
+        // Use ws:// for local dev. In production with HTTPS, use wss://
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        // Assuming the backend runs on localhost:8000
+        const wsUrl = `${wsProtocol}//localhost:8000/ws/incidents/`
+
+        const socket = new WebSocket(wsUrl)
+
+        socket.onopen = () => {
+            console.log('Connected to real-time incidents channel')
+        }
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data)
+            if(data.type === 'incident_update') {
+                const newIncident = data.data
+                console.log("New incident received!", newIncident)
+
+                // Add the new marker to the map instantly
+                if (window.google) {
+                    new window.google.maps.Marker({
+                        position: { lat: parseFloat(newIncident.latitude), lng: parseFloat(newIncident.longitude) },
+                        map: mapRef.current,
+                        title: newIncident.incident_type,
+                        icon: {
+                            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        }
+                    })
+                }
+            }
+        }
+
+        socket.onclose = () => {
+            console.log('Disconnected from real-time incidents channel')
+        }
+
+        return () => {
+            socket.close()
+        }
+    }, [])
 
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+            <style>
+                {`
+                @keyframes pulse {
+                    0% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0.7); }
+                    70% { box-shadow: 0 0 0 10px rgba(59, 130, 246, 0); }
+                    100% { box-shadow: 0 0 0 0 rgba(59, 130, 246, 0); }
+                }
+                `}
+            </style>
             <div
                 ref={mapContainerRef}
                 style={{ width: '100%', height: '100%', borderRadius: '12px'}}
             />
 
-            {/* Floating Map Filters Panel */}
-            <div style={{
-                position: 'absolute',
-                top: '12px',
-                right: '12px',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                padding: '12px',
-                borderRadius: '8px',
-                boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                zIndex: 1000,
-                width: '240px',
-                maxHeight: '80%',
-                overflowY: 'auto'
-            }}>
-                <h4 style={{ marginTop: 0, marginBottom: '8px', fontSize: '14px' }}>Map Filters</h4>
-                
-                <div style={{ marginBottom: '12px' }}>
-                    <strong style={{ fontSize: '12px', color: '#555' }}>Infrastructure</strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                        {Object.keys(filters.signals).map(type => (
-                            <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={filters.signals[type]} 
-                                    onChange={() => handleFilterChange('signals', type)}
-                                />
-                                {type}
-                            </label>
-                        ))}
+            {!isTracking && (
+                <div style={{
+                    position: 'absolute',
+                    top: '12px',
+                    right: '12px',
+                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                    padding: '12px',
+                    borderRadius: '8px',
+                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                    zIndex: 1000,
+                    width: '240px',
+                    maxHeight: '80%',
+                    overflowY: 'auto'
+                }}>
+                    <h4 style={{ marginTop: 0, marginBottom: '8px', fontSize: '14px' }}>Map Filters</h4>
+                    
+                    <div style={{ marginBottom: '12px' }}>
+                        <strong style={{ fontSize: '12px', color: '#555' }}>Infrastructure</strong>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                            {Object.keys(filters.signals).map(type => (
+                                <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={filters.signals[type]} 
+                                        onChange={() => handleFilterChange('signals', type)}
+                                    />
+                                    {type}
+                                </label>
+                            ))}
+                        </div>
+                    </div>
+
+                    <div>
+                        <strong style={{ fontSize: '12px', color: '#555' }}>User Incidents</strong>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
+                            {Object.keys(filters.incidents).map(type => (
+                                <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
+                                    <input 
+                                        type="checkbox" 
+                                        checked={filters.incidents[type]} 
+                                        onChange={() => handleFilterChange('incidents', type)}
+                                    />
+                                    {type}
+                                </label>
+                            ))}
+                        </div>
                     </div>
                 </div>
+            )}
 
-                <div>
-                    <strong style={{ fontSize: '12px', color: '#555' }}>User Incidents</strong>
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                        {Object.keys(filters.incidents).map(type => (
-                            <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                <input 
-                                    type="checkbox" 
-                                    checked={filters.incidents[type]} 
-                                    onChange={() => handleFilterChange('incidents', type)}
-                                />
-                                {type}
-                            </label>
-                        ))}
-                    </div>
-                </div>
-            </div>
-
-            {selectedMapLocation && !reportLocation && (
+            {selectedMapLocation && !reportLocation && !isTracking && (
                 <div style={{
                     position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
                     backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 9999,

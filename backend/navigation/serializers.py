@@ -19,3 +19,11 @@ class RoutePreviewRequestSerializer(serializers.Serializer):
                 'Origin and destination cannot be the same point.'
             )
         return attrs
+
+from .models import SavedRoute
+
+class SavedRouteSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = SavedRoute
+        fields = ['id', 'name', 'origin_lat', 'origin_lng', 'dest_lat', 'dest_lng', 'created_at']
+        read_only_fields = ['id', 'created_at']

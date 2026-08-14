@@ -2,6 +2,7 @@ from time import time
 import requests
 from django.conf import settings
 from safety_data.models import IncidentReport
+from .scoring import calculate_route_score
 
 # 1. Custom Exceptions
 class RoutingConfigurationError(Exception):
@@ -92,12 +93,16 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
         summary = route_feature.get("properties", {}).get("summary", {})
         geometry = route_feature.get("geometry", {})
 
+        score_data = calculate_route_score(geometry)
+
         return {
             "distance_meters": int(summary.get("distance", 0)),
             "duration_seconds": int(summary.get("duration", 0)),
             "geometry": geometry,
             "provider": "openrouteservice",
-            "profile": profile
+            "profile": profile,
+            "safety_score": score_data["score"],
+            "advisories": score_data["advisories"]
         }
 
     except requests.exceptions.Timeout:
