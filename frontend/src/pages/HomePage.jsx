@@ -43,7 +43,7 @@ export function HomePage() {
     // Initial data fetch
     useEffect(() => {
         getSavedRoutes().then(setSavedRoutes).catch(err => console.error("Failed to fetch saved routes", err));
-        getEmergencyContacts().then(setContacts).catch(err => console.error("Failed to fetch contacts", err))
+        getEmergencyContacts().then(setEmergencyContacts).catch(err => console.error("Failed to fetch contacts", err))
     }, []);
 
     useEffect(() => {
