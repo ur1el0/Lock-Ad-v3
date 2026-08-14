@@ -1,6 +1,12 @@
+from asyncio import timeout
+from rest_framework import status
 from rest_framework import viewsets, permissions
 from safety_data.models import IncidentReport, SafetySignal
 from safety_data.serializers import IncidentReportSerializer, SafetySignalSerializer
+import requests
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import AllowAny
+from rest_framework.response import Response
 
 class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetySignalSerializer
@@ -48,3 +54,23 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+@api_view(['GET'])
+@permission_classes([AllowAny])
+def get_weather(request):
+    lat = request.query_params.get('lat')
+    lng = request.query_params.get('lng')
+
+    if not lat or not lng:
+        return Response({'error': 'Please provide lat and lng'}, status=400)
+
+    # Call the Open-Meteo API
+    url = f"https://api.open-meteo.com/v1/forecast?latitude={lat}&longitude={lng}&current_weather=true"
+
+    try: 
+        response = requests.get(url, timeout=5)
+        response.raise_for_status()
+        data = response.json()
+        return Response(data.get('current_weather', {}))
+    except requests.RequestException:
+        return Response({'error': 'Failed to fetch weather data' }, status=500)
