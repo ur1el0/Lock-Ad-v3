@@ -4,6 +4,17 @@ import { getCsrfToken } from './auth'
 export async function getAllIncidentReports() {
     return client('/api/safety/incidents/')
 }
+
+export async function createIncident(data) {
+    const csrfToken = await getCsrfToken();
+    return client('/api/safety/incidents/', {
+        method: 'POST',
+        body: data,
+        headers: {
+            'X-CSRFToken': csrfToken,
+        }
+    });
+}
     
 export async function updateIncidentReport(id, data )   {
     const csrfToken = await getCsrfToken()
