@@ -7,6 +7,7 @@ import requests
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
+from safety_data.ai_service import get_travel_advisory
 
 class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetySignalSerializer
@@ -74,3 +75,16 @@ def get_weather(request):
         return Response(data.get('current_weather', {}))
     except requests.RequestException:
         return Response({'error': 'Failed to fetch weather data' }, status=500)
+
+@api_view(['POST'])
+@permission_classes([AllowAny])
+def generate_advisory(request):
+    data = request.data
+    distance = data.get('distance', 0)
+    duration = data.get('duration', 0)
+    weather_code = data.get('weather_code', 0)
+    temperature = data.get('temperature', 0)
+
+    advisory = get_travel_advisory(distance, duration, weather_code, temperature)
+
+    return Response({'advisory': advisory})
