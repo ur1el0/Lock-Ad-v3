@@ -1,12 +1,26 @@
 import { useState, useEffect } from "react";
-import { Link, useFetcher } from "react-router-dom"
+import { Link } from "react-router-dom"
 import { getAllIncidentReports, updateIncidentReport } from "../api/safety";
 
 export function ModeratorDashboard() {
     const [reports, setReports] = useState([])
     const [loading, setLoading] = useState(true)
 
+    async function fetchReports() {
+        try {
+            setLoading(true)
+            const data = await getAllIncidentReports()
+            setReports(data)
+        } catch (err) {
+            console.error(err)
+            console.error("Failed to load reports")
+        } finally {
+            setLoading(false)
+        }
+    }
+
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchReports()
     }, [])
 
@@ -15,6 +29,7 @@ export function ModeratorDashboard() {
             await updateIncidentReport(id, { status: newStatus })
             setReports(reports.map(r => r.id === id ? { ...r, status: newStatus } : r))
         } catch (err) {
+            console.error(err);
             alert('Failed to update status')
         }
     }

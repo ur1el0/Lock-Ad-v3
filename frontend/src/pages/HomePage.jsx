@@ -52,6 +52,7 @@ export function HomePage() {
                 .then(data => setWeather(data))
                 .catch(err => console.error("Failed to fetch weather", err))
         } else {
+            // eslint-disable-next-line
             setWeather(null)
         }
     }, [originLat, originLng])
@@ -113,7 +114,8 @@ export function HomePage() {
             });
             setSavedRoutes([newRoute, ...savedRoutes]);
             alert("Route saved successfully!");
-        } catch (err) {
+        } catch (e) {
+            console.error(e)
             alert("Failed to save route. Please try again.");
         } finally {
             setSavingRoute(false);
@@ -176,12 +178,13 @@ export function HomePage() {
         setIsTracking(false);
     };
 
-    const handlegetAiAdvisory = async () => {
+    const handleGetAiAdvisory = async () => {
         setFetchingAi(true)
         try {
             const data= await getAiAdvisory(routeStats, weather)
             setAiAdvisory(data.advisory)
-        } catch (err) {
+        } catch (e) {
+            console.error(e)
             alert("Failed to get AI Advisory. Please try again.")
         } finally {
             setFetchingAi(false)

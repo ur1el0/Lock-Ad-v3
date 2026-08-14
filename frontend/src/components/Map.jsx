@@ -136,6 +136,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                 mapRef.current = null
             }
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [])
 
     useEffect(() => {
