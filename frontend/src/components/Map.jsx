@@ -221,6 +221,48 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
         };
     }, [isTracking, destination, onArrived]);
 
+    // WebSocket for Real-Time Incidents
+    useEffect(() => {
+        // Use ws:// for local dev. In production with HTTPS, use wss://
+        const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+        // Assuming the backend runs on localhost:8000
+        const wsUrl = `${wsProtocol}//localhost:8000/ws/incidents/`
+
+        const socket = new WebSocket(wsUrl)
+
+        socket.onopen = () => {
+            console.log('Connected to real-time incidents channel')
+        }
+
+        socket.onmessage = (event) => {
+            const data = JSON.parse(event.data)
+            if(data.type === 'incident_update') {
+                const newIncident = data.data
+                console.log("New incident received!", newIncident)
+
+                // Add the new marker to the map instantly
+                if (window.google) {
+                    new window.google.maps.Marker({
+                        position: { lat: parseFloat(newIncident.latitude), lng: parseFloat(newIncident.longitude) },
+                        map: mapRef.current,
+                        title: newIncident.incident_type,
+                        icon: {
+                            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
+                        }
+                    })
+                }
+            }
+        }
+
+        socket.onclose = () => {
+            console.log('Disconnected from real-time incidents channel')
+        }
+
+        return () => {
+            socket.close()
+        }
+    }, [])
+
     return (
         <div style={{ width: '100%', height: '100%', position: 'relative' }}>
             <style>
