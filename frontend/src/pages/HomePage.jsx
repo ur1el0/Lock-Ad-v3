@@ -5,6 +5,8 @@ import { getRoutePreview, getSavedRoutes, createSavedRoute } from "../api/naviga
 import { getEmergencyContacts } from "../api/emergency";
 import { APIError } from "../api/client";
 import { Map } from "../components/Map";
+import { getWeather } from "../api/safety";
+import { Cloud, Sun, CloudRain, CloudLightning } from 'lucide-react'
 
 export function HomePage() {
     const { user, logout } = useAuth()
@@ -32,10 +34,23 @@ export function HomePage() {
     const [savedRoutes, setSavedRoutes] = useState([])
     const [savingRoute, setSavingRoute] = useState(false)
 
+    const [weather, setWeather] = useState(null);
+
     // Initial data fetch
     useEffect(() => {
         getSavedRoutes().then(setSavedRoutes).catch(err => console.error("Failed to fetch saved routes", err));
+        getEmergencyContacts().then(setContacts).catch(err => console.error("Failed to fetch contacts", err))
     }, []);
+
+    useEffect(() => {
+        if (origin) {
+            getWeather(origin.lat, origin.lng)
+                .then(data => setWeather(data))
+                .catch(err => console.error("Failed to fetch weather", err))
+        } else {
+            setWeather(null)
+        }
+    }, [origin])
 
     // Fetch emergency contacts when tracking starts
     useEffect(() => {
@@ -389,7 +404,25 @@ export function HomePage() {
                 )}
             </aside>
 
-            <main className="map-wrapper">
+            <main className="map-wrapper" style={{ position: 'relative' }}>
+                {/* Weather Overlay */}
+                {weather && (
+                    <div className="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-slate-200/50 flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-xl text-blue-600">
+                            {weather.weathercode <= 3 ? <Sun className="w-5 h-5" /> : 
+                             weather.weathercode <= 60 ? <Cloud className="w-5 h-5" /> : 
+                             weather.weathercode <= 90 ? <CloudRain className="w-5 h-5" /> : 
+                             <CloudLightning className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Weather</p>
+                            <p className="text-lg font-extrabold text-slate-800">
+                                {weather.temperature}°C <span className="text-sm font-medium text-slate-500 ml-1">({weather.windspeed} km/h wind)</span>
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <Map 
                     routeGeometry={routeGeometry} 
                     onSetDestination={(latlng) => {
@@ -401,6 +434,7 @@ export function HomePage() {
                     onArrived={handleArrived}
                 />
             </main>
+            
         </div>
     )
 }

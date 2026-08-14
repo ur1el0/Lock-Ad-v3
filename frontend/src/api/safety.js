@@ -16,3 +16,6 @@ export async function updateIncidentReport(id, data )   {
     })
 }
 
+export const getWeather = async (lat, lng) => {
+    return await client(`/api/safety/weather/?lat=${lat}&lng=${lng}`);
+}
