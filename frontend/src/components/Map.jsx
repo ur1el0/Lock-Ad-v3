@@ -116,7 +116,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
         // Locate current user and drop a marker
         map.locate({ setView: false, maxZoom: 16 });
         map.on('locationfound', (e) => {
-            if (!mapRef.current) return;
+            if (map !== mapRef.current) return;
             const radius = e.accuracy / 2;
             L.marker(e.latlng).addTo(map)
                 .bindPopup(`You are here! (Within ${Math.round(radius)} meters)`).openPopup();

@@ -47,14 +47,14 @@ export function HomePage() {
     }, []);
 
     useEffect(() => {
-        if (origin) {
-            getWeather(origin.lat, origin.lng)
+        if (originLat && originLng) {
+            getWeather(originLat, originLng)
                 .then(data => setWeather(data))
                 .catch(err => console.error("Failed to fetch weather", err))
         } else {
             setWeather(null)
         }
-    }, [origin])
+    }, [originLat, originLng])
 
     // Fetch emergency contacts when tracking starts
     useEffect(() => {
