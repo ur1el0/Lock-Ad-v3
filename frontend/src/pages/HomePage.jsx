@@ -480,6 +480,7 @@ export function HomePage() {
                         setDestLng(latlng.lng.toFixed(6));
                     }}
                     isTracking={isTracking}
+                    origin={{lat: parseFloat(originLat), lng: parseFloat(originLng)}}
                     destination={{lat: parseFloat(destLat), lng: parseFloat(destLng)}}
                     onArrived={handleArrived}
                 />

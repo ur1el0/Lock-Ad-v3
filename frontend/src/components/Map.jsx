@@ -22,12 +22,14 @@ const liveLocationIcon = L.divIcon({
     iconAnchor: [8, 8]
 });
 
-export function Map({ routeGeometry, onSetDestination, isTracking, destination, onArrived }) {
+export function Map({ routeGeometry, onSetDestination, isTracking, destination, origin, onArrived }) {
     const mapContainerRef = useRef(null)
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
     const markersLayerRef = useRef(null)
     const liveMarkerRef = useRef(null)
+    const destMarkerRef = useRef(null)
+    const originMarkerRef = useRef(null)
 
     // Modal state
     const [reportLocation, setReportLocation] = useState(null)
@@ -171,6 +173,46 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
             }
         }
     },[routeGeometry, isTracking])
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        if (destination && !isNaN(destination.lat) && !isNaN(destination.lng)) {
+            const latlng = L.latLng(destination.lat, destination.lng);
+            if (!destMarkerRef.current) {
+                // Add a destination marker
+                destMarkerRef.current = L.marker(latlng).addTo(map).bindPopup("Destination");
+            } else {
+                destMarkerRef.current.setLatLng(latlng);
+            }
+        } else {
+            if (destMarkerRef.current) {
+                map.removeLayer(destMarkerRef.current);
+                destMarkerRef.current = null;
+            }
+        }
+    }, [destination]);
+
+    useEffect(() => {
+        const map = mapRef.current;
+        if (!map) return;
+
+        if (origin && !isNaN(origin.lat) && !isNaN(origin.lng)) {
+            const latlng = L.latLng(origin.lat, origin.lng);
+            if (!originMarkerRef.current) {
+                // Add an origin marker (you could customize the icon here)
+                originMarkerRef.current = L.marker(latlng).addTo(map).bindPopup("Origin");
+            } else {
+                originMarkerRef.current.setLatLng(latlng);
+            }
+        } else {
+            if (originMarkerRef.current) {
+                map.removeLayer(originMarkerRef.current);
+                originMarkerRef.current = null;
+            }
+        }
+    }, [origin]);
 
     useEffect(() => {
         let watchId;
@@ -353,7 +395,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                             }} 
                             style={{ padding: '10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
-                            📍 Set as Destination
+                            Set as Destination
                         </button>
                         
                         <button 
@@ -363,7 +405,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                             }} 
                             style={{ padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
                         >
-                            ⚠️ Report Hazard Here
+                            Report Hazard Here
                         </button>
 
                         <button 
