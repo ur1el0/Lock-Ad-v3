@@ -13,9 +13,6 @@ export function EmergencyContactsPage() {
     const [relationship, setRelationship] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    useEffect(() => {
-        fetchContacts();
-    }, []);
 
     async function fetchContacts() {
         try {
@@ -23,11 +20,17 @@ export function EmergencyContactsPage() {
             const data = await getEmergencyContacts();
             setContacts(data);
         } catch (err) {
+            console.error(err);
             setError('Failed to load contacts');
         } finally {
             setLoading(false);
         }
     }
+
+    useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        fetchContacts();
+    }, []);
 
     async function handleAddContact(e) {
         e.preventDefault();
@@ -40,7 +43,8 @@ export function EmergencyContactsPage() {
             setName('');
             setPhoneNumber('');
             setRelationship('');
-        } catch (err) {
+        } catch (e) {
+            console.error(e);
             setError('Failed to add contact');
         } finally {
             setSubmitting(false);
@@ -52,7 +56,8 @@ export function EmergencyContactsPage() {
         try {
             await deleteEmergencyContact(id);
             setContacts(contacts.filter(c => c.id !== id));
-        } catch (err) {
+        } catch (e) {
+            console.error(e);
             alert('Failed to delete contact');
         }
     }

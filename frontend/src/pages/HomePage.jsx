@@ -5,6 +5,8 @@ import { getRoutePreview, getSavedRoutes, createSavedRoute } from "../api/naviga
 import { getEmergencyContacts } from "../api/emergency";
 import { APIError } from "../api/client";
 import { Map } from "../components/Map";
+import { getAiAdvisory, getWeather } from "../api/safety";
+import { Cloud, Sun, CloudRain, CloudLightning, Sparkles, Shield, Star, MapPin, PersonStanding, Octagon, Phone, AlertTriangle } from 'lucide-react'
 
 export function HomePage() {
     const { user, logout } = useAuth()
@@ -32,10 +34,28 @@ export function HomePage() {
     const [savedRoutes, setSavedRoutes] = useState([])
     const [savingRoute, setSavingRoute] = useState(false)
 
+    const [weather, setWeather] = useState(null);
+
+    const [aiAdvisory, setAiAdvisory] = useState(null)
+    const [fetchingAi, setFetchingAi] = useState(false)
+
+
     // Initial data fetch
     useEffect(() => {
         getSavedRoutes().then(setSavedRoutes).catch(err => console.error("Failed to fetch saved routes", err));
+        getEmergencyContacts().then(setEmergencyContacts).catch(err => console.error("Failed to fetch contacts", err))
     }, []);
+
+    useEffect(() => {
+        if (originLat && originLng) {
+            getWeather(originLat, originLng)
+                .then(data => setWeather(data))
+                .catch(err => console.error("Failed to fetch weather", err))
+        } else {
+            // eslint-disable-next-line
+            setWeather(null)
+        }
+    }, [originLat, originLng])
 
     // Fetch emergency contacts when tracking starts
     useEffect(() => {
@@ -94,7 +114,8 @@ export function HomePage() {
             });
             setSavedRoutes([newRoute, ...savedRoutes]);
             alert("Route saved successfully!");
-        } catch (err) {
+        } catch (e) {
+            console.error(e)
             alert("Failed to save route. Please try again.");
         } finally {
             setSavingRoute(false);
@@ -109,6 +130,7 @@ export function HomePage() {
         setError(null)
         setRouteGeometry(null)
         setRouteStats(null)
+        setAiAdvisory(null)
 
         const origin = { lat: parseFloat(originLat), lng: parseFloat(originLng) }
         const destination = { lat: parseFloat(destLat), lng: parseFloat(destLng) }
@@ -152,10 +174,22 @@ export function HomePage() {
     };
 
     const handleArrived = () => {
-        alert("🎉 You have arrived at your destination!");
+        alert("You have arrived at your destination!");
         setIsTracking(false);
     };
 
+    const handleGetAiAdvisory = async () => {
+        setFetchingAi(true)
+        try {
+            const data= await getAiAdvisory(routeStats, weather)
+            setAiAdvisory(data.advisory)
+        } catch (e) {
+            console.error(e)
+            alert("Failed to get AI Advisory. Please try again.")
+        } finally {
+            setFetchingAi(false)
+        }
+    }
     // 6. Render the UI
     return (
         <div className="app-container">
@@ -175,8 +209,8 @@ export function HomePage() {
                             </Link>
                             
                             {user?.is_staff && (
-                                <Link to="/moderator" style={{ fontSize: '12px', color: '#dc2626', textDecoration: 'none', fontWeight: 'bold' }}>
-                                    🛡️ Moderator Dashboard
+                                <Link to="/moderator" style={{ fontSize: '12px', color: '#dc2626', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <Shield className="w-3 h-3" /> Moderator Dashboard
                                 </Link>
                             )}
                         </div>
@@ -200,7 +234,9 @@ export function HomePage() {
                                             onClick={() => handleSelectSavedRoute(r)}
                                             style={{ padding: '6px 12px', fontSize: '13px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '16px', cursor: 'pointer' }}
                                         >
-                                            ⭐ {r.name}
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
+                                                <Star className="w-3 h-3" /> {r.name}
+                                            </span>
                                         </button>
                                     ))}
                                 </div>
@@ -217,7 +253,10 @@ export function HomePage() {
                                         disabled={locationLoading}
                                         style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', padding: 0 }}
                                     >
-                                        {locationLoading ? '📍 Locating...' : '📍 Use Current Location'}
+                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                            <MapPin className="w-4 h-4" />
+                                            {locationLoading ? 'Locating...' : 'Use Current Location'}
+                                        </span>
                                     </button>
                                 </div>
                                 <div className="input-group">
@@ -317,13 +356,31 @@ export function HomePage() {
                                     <p style={{ marginTop: '12px', fontSize: '11px', fontStyle: 'italic', color: '#6b7280' }}>
                                         Advisory Note: Route guidance is for planning purposes only. Real-world conditions may differ.
                                     </p>
+                                    {aiAdvisory ? (
+                                    <div style={{ marginTop: '12px', padding: '12px', background: 'linear-gradient(to right, #fef3c7, #fef08a)', borderRadius: '8px', border: '1px solid #fde047' }}>
+                                        <p style={{ margin: 0, fontSize: '13px', color: '#854d0e', fontWeight: '500', display: 'flex', gap: '8px' }}>
+                                            <Sparkles className="w-4 h-4 flex-shrink-0" /> {aiAdvisory}
+                                        </p>
+                                    </div>
+                                ) : (
+                                    <button 
+                                        onClick={handleGetAiAdvisory}
+                                        disabled={fetchingAi}
+                                        style={{ marginTop: '12px', padding: '8px', background: 'white', color: '#ca8a04', border: '1px solid #fde047', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(253, 224, 71, 0.2)' }}
+                                    >
+                                        <Sparkles className="w-4 h-4" />
+                                        {fetchingAi ? 'Generating Advisory...' : 'Generate AI Safety Advisory'}
+                                    </button>
+                                )}
                                 </div>
 
                                 <button 
                                     onClick={handleStartTrip} 
                                     style={{ marginTop: '16px', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
                                 >
-                                    🚶‍♂️ Start Trip
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                        <PersonStanding className="w-5 h-5" /> Start Trip
+                                    </span>
                                 </button>
                                 
                                 <button 
@@ -331,7 +388,9 @@ export function HomePage() {
                                     disabled={savingRoute}
                                     style={{ marginTop: '8px', padding: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', width: '100%' }}
                                 >
-                                    {savingRoute ? 'Saving...' : '⭐ Save Route'}
+                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
+                                        <Star className="w-4 h-4" /> {savingRoute ? 'Saving...' : 'Save Route'}
+                                    </span>
                                 </button>
                             </div>
                         )}
@@ -342,7 +401,7 @@ export function HomePage() {
                             width: '80px', height: '80px', borderRadius: '50%', background: '#d1fae5', color: '#10b981', 
                             display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '16px'
                         }}>
-                            📍
+                            <MapPin className="w-8 h-8" />
                         </div>
                         <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', color: '#111827' }}>Tracking Active</h2>
                         <p style={{ color: '#4b5563', marginBottom: '24px' }}>Follow the blue path on the map. Your location is being tracked in real-time.</p>
@@ -363,7 +422,9 @@ export function HomePage() {
                                             textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center',
                                             border: '1px solid #fca5a5'
                                         }}>
-                                            📞 Call {c.name} ({c.relationship})
+                                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                                <Phone className="w-4 h-4" /> Call {c.name} ({c.relationship})
+                                            </span>
                                         </a>
                                     ))}
                                 </div>
@@ -375,7 +436,9 @@ export function HomePage() {
                                 display: 'block', padding: '12px', background: '#ef4444', color: 'white', 
                                 textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', marginTop: '12px'
                             }}>
-                                🚨 Call Local Emergency (911)
+                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                    <AlertTriangle className="w-4 h-4" /> Call Local Emergency (911)
+                                </span>
                             </a>
                         </div>
 
@@ -383,13 +446,33 @@ export function HomePage() {
                             onClick={handleEndTrip} 
                             style={{ padding: '12px', background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
                         >
-                            🛑 End Trip
+                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
+                                <Octagon className="w-5 h-5" /> End Trip
+                            </span>
                         </button>
                     </div>
                 )}
             </aside>
 
-            <main className="map-wrapper">
+            <main className="map-wrapper" style={{ position: 'relative' }}>
+                {/* Weather Overlay */}
+                {weather && (
+                    <div className="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-slate-200/50 flex items-center gap-3">
+                        <div className="bg-blue-100 p-2 rounded-xl text-blue-600">
+                            {weather.weathercode <= 3 ? <Sun className="w-5 h-5" /> : 
+                             weather.weathercode <= 60 ? <Cloud className="w-5 h-5" /> : 
+                             weather.weathercode <= 90 ? <CloudRain className="w-5 h-5" /> : 
+                             <CloudLightning className="w-5 h-5" />}
+                        </div>
+                        <div>
+                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Weather</p>
+                            <p className="text-lg font-extrabold text-slate-800">
+                                {weather.temperature}°C <span className="text-sm font-medium text-slate-500 ml-1">({weather.windspeed} km/h wind)</span>
+                            </p>
+                        </div>
+                    </div>
+                )}
+
                 <Map 
                     routeGeometry={routeGeometry} 
                     onSetDestination={(latlng) => {
@@ -397,10 +480,12 @@ export function HomePage() {
                         setDestLng(latlng.lng.toFixed(6));
                     }}
                     isTracking={isTracking}
+                    origin={{lat: parseFloat(originLat), lng: parseFloat(originLng)}}
                     destination={{lat: parseFloat(destLat), lng: parseFloat(destLng)}}
                     onArrived={handleArrived}
                 />
             </main>
+            
         </div>
     )
 }
