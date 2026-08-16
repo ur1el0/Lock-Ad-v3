@@ -1,4 +1,3 @@
-from asyncio import timeout
 from rest_framework import status
 from rest_framework import viewsets, permissions
 from safety_data.models import IncidentReport, SafetySignal

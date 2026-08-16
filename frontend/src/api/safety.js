@@ -38,7 +38,7 @@ export async function createIncident(data) {
     
 export async function updateIncidentReport(id, data )   {
     const csrfToken = await getCsrfToken()
-    return client(`/api/safety/incidents/${id}`, {
+    return client(`/api/safety/incidents/${id}/`, {
         method: 'PATCH',
         body: data,
         headers: {
