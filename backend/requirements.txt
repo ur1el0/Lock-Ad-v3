@@ -30,3 +30,7 @@ typing_extensions==4.16.0
 ujson==5.13.0
 urllib3==2.7.0
 zope.interface==8.5
+psycopg2-binary>=2.9.9
+channels-redis>=4.2.0
+whitenoise>=6.6.0
+gunicorn>=21.2.0
