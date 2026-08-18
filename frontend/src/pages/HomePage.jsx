@@ -17,7 +17,7 @@ export function HomePage() {
     const [originLng, setOriginLng] = useState('121.6238')
     const [destLat, setDestLat] = useState('13.9442')
     const [destLng, setDestLng] = useState('121.6179')
-    const [profile, setProfile] = useState('foot-walking')
+    const [profile] = useState('foot-walking')
     
     // 2. Define states for API results and loading/error state
     const [routeGeometry, setRouteGeometry] = useState(null)
@@ -192,287 +192,244 @@ export function HomePage() {
     }
     // 6. Render the UI
     return (
-        <div className="app-container">
-            <aside className="sidebar">
-                <div className="sidebar-header">
-                    <h1>Lock-Ad</h1>
-                    <p className="subtitle">{isTracking ? 'Active Trip' : 'Advisory Route Preview'}</p>
+        <div className="flex h-screen w-screen overflow-hidden bg-muted/30">
+            {/* Sidebar panel */}
+            <aside className="w-[420px] bg-background/95 backdrop-blur-xl border-r border-border flex flex-col p-6 overflow-y-auto shrink-0 shadow-2xl z-20">
+                
+                <div className="mb-8">
+                    <h1 className="text-3xl font-extrabold tracking-tight text-primary">Lock-Ad</h1>
+                    <p className="text-sm font-medium text-muted-foreground mt-1">
+                        {isTracking ? 'Active Trip' : 'Advisory Route Preview'}
+                    </p>
                 </div>
-
-                <div className="user-profile">
+                {/* Profile Card */}
+                <div className="bg-card border border-border p-4 rounded-xl shadow-sm mb-6 flex justify-between items-center transition-all hover:shadow-md">
                     <div>
-                        <p style={{ margin: 0 }}>Signed in as <strong>{user?.username}</strong></p>
-                        
-                        <div style={{ display: 'flex', gap: '12px', marginTop: '4px' }}>
-                            <Link to="/contacts" style={{ fontSize: '12px', color: '#2563eb', textDecoration: 'none' }}>
-                                Manage Emergency Contacts
+                        <p className="text-sm text-card-foreground m-0">Signed in as <strong className="font-bold">{user?.username}</strong></p>
+                        <div className="flex gap-4 mt-2">
+                            <Link to="/contacts" className="text-xs font-semibold text-blue-600 hover:text-blue-700 transition-colors">
+                                Manage Contacts
                             </Link>
-                            
                             {user?.is_staff && (
-                                <Link to="/moderator" style={{ fontSize: '12px', color: '#dc2626', textDecoration: 'none', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                    <Shield className="w-3 h-3" /> Moderator Dashboard
+                                <Link to="/moderator" className="text-xs font-bold text-destructive hover:text-red-700 flex items-center gap-1 transition-colors">
+                                    <Shield className="w-3 h-3" /> Moderator
                                 </Link>
                             )}
                         </div>
                     </div>
-                    <button onClick={handleLogout} className="btn-secondary btn-sm" disabled={isTracking}>
+                    <button onClick={handleLogout} disabled={isTracking} className="px-3 py-1.5 bg-secondary text-secondary-foreground text-xs font-semibold rounded-lg border border-border hover:bg-secondary/80 transition-colors disabled:opacity-50">
                         Log out
                     </button>
                 </div>
 
-
-                {!isTracking ? (
-                    <>
-                        {savedRoutes.length > 0 && (
-                            <div style={{ padding: '0 24px 16px 24px' }}>
-                                <p style={{ fontSize: '12px', fontWeight: 'bold', color: '#6b7280', margin: '0 0 8px 0', textTransform: 'uppercase' }}>Quick Select</p>
-                                <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-                                    {savedRoutes.map(r => (
-                                        <button 
-                                            key={r.id} 
-                                            type="button"
-                                            onClick={() => handleSelectSavedRoute(r)}
-                                            style={{ padding: '6px 12px', fontSize: '13px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '16px', cursor: 'pointer' }}
-                                        >
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '4px', justifyContent: 'center' }}>
-                                                <Star className="w-3 h-3" /> {r.name}
-                                            </span>
-                                        </button>
-                                    ))}
-                                </div>
-                            </div>
-                        )}
-
-                        <form onSubmit={handleFetchRoute} className="route-form">
-                            <div className="form-section">
-                                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <h3>Origin (Start)</h3>
-                                    <button 
-                                        type="button" 
-                                        onClick={handleUseCurrentLocation}
-                                        disabled={locationLoading}
-                                        style={{ background: 'none', border: 'none', color: '#2563eb', cursor: 'pointer', fontSize: '12px', padding: 0 }}
-                                    >
-                                        <span style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
-                                            <MapPin className="w-4 h-4" />
-                                            {locationLoading ? 'Locating...' : 'Use Current Location'}
-                                        </span>
-                                    </button>
-                                </div>
-                                <div className="input-group">
-                                    <input 
-                                        type="number" 
-                                        step="any"
-                                        placeholder="Latitude" 
-                                        value={originLat} 
-                                        onChange={(e) => setOriginLat(e.target.value)} 
-                                        required 
-                                    />
-                                    <input 
-                                        type="number" 
-                                        step="any"
-                                        placeholder="Longitude" 
-                                        value={originLng} 
-                                        onChange={(e) => setOriginLng(e.target.value)} 
-                                        required 
-                                    />
-                                </div>
-                            </div>
-
-                            <div className="form-section">
-                                <h3>Destination (End)</h3>
-                                <div className="input-group">
-                                    <input 
-                                        type="number" 
-                                        step="any"
-                                        placeholder="Latitude" 
-                                        value={destLat} 
-                                        onChange={(e) => setDestLat(e.target.value)} 
-                                        required 
-                                    />
-                                    <input 
-                                        type="number" 
-                                        step="any"
-                                        placeholder="Longitude" 
-                                        value={destLng} 
-                                        onChange={(e) => setDestLng(e.target.value)} 
-                                        required 
-                                    />
-                                </div>
-                                <p style={{ fontSize: '11px', color: '#6b7280', marginTop: '4px' }}>
-                                    Tip: Tap anywhere on the map to easily set a destination.
-                                </p>
-                            </div>
-
-                            <div className="form-section">
-                                <h3>Profile</h3>
-                                <select value={profile} onChange={(e) => setProfile(e.target.value)}>
-                                    <option value="foot-walking">Foot Walking</option>
-                                </select>
-                            </div>
-
-                            <button type="submit" disabled={loading} className="btn-primary">
-                                {loading ? 'Fetching route...' : 'Get Route Preview'}
-                            </button>
-                        </form>
-
-                        {error && (
-                            <div className="error-panel">
-                                <strong>Error:</strong> {error}
-                            </div>
-                        )}
-
-                        {routeStats && (
-                            <div className="route-details">
-                                <h3>Route Details</h3>
-                                <div className="stats-grid" style={{ gridTemplateColumns: '1fr 1fr 1fr' }}>
-                                    <div className="stat-card">
-                                        <span className="stat-label">Distance</span>
-                                        <span className="stat-value">
-                                            {(routeStats.distance / 1000).toFixed(2)} km
-                                        </span>
-                                    </div>
-                                    <div className="stat-card">
-                                        <span className="stat-label">Walking Time</span>
-                                        <span className="stat-value">
-                                            {Math.round(routeStats.duration / 60)} mins
-                                        </span>
-                                    </div>
-                                    <div className="stat-card" style={{ borderColor: getScoreColor(routeStats.score), borderWidth: '2px', borderStyle: 'solid' }}>
-                                        <span className="stat-label" style={{ color: getScoreColor(routeStats.score) }}>Safety Score</span>
-                                        <span className="stat-value" style={{ color: getScoreColor(routeStats.score) }}>
-                                            {routeStats.score}/100
-                                        </span>
-                                    </div>
-                                </div>
-                                
-                                <div className="advisory-box">
-                                    <h4 style={{ marginTop: 0, marginBottom: '8px', fontSize: '13px' }}>Route Insights:</h4>
-                                    <ul style={{ margin: 0, paddingLeft: '20px', fontSize: '12px', color: '#374151' }}>
-                                        {routeStats.advisories && routeStats.advisories.map((adv, idx) => (
-                                            <li key={idx} style={{ marginBottom: '4px' }}>{adv}</li>
-                                        ))}
-                                    </ul>
-                                    <p style={{ marginTop: '12px', fontSize: '11px', fontStyle: 'italic', color: '#6b7280' }}>
-                                        Advisory Note: Route guidance is for planning purposes only. Real-world conditions may differ.
-                                    </p>
-                                    {aiAdvisory ? (
-                                    <div style={{ marginTop: '12px', padding: '12px', background: 'linear-gradient(to right, #fef3c7, #fef08a)', borderRadius: '8px', border: '1px solid #fde047' }}>
-                                        <p style={{ margin: 0, fontSize: '13px', color: '#854d0e', fontWeight: '500', display: 'flex', gap: '8px' }}>
-                                            <Sparkles className="w-4 h-4 flex-shrink-0" /> {aiAdvisory}
-                                        </p>
-                                    </div>
-                                ) : (
-                                    <button 
-                                        onClick={handleGetAiAdvisory}
-                                        disabled={fetchingAi}
-                                        style={{ marginTop: '12px', padding: '8px', background: 'white', color: '#ca8a04', border: '1px solid #fde047', borderRadius: '8px', cursor: 'pointer', fontSize: '13px', fontWeight: 'bold', width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '6px', boxShadow: '0 2px 4px rgba(253, 224, 71, 0.2)' }}
-                                    >
-                                        <Sparkles className="w-4 h-4" />
-                                        {fetchingAi ? 'Generating Advisory...' : 'Generate AI Safety Advisory'}
-                                    </button>
-                                )}
-                                </div>
-
-                                <button 
-                                    onClick={handleStartTrip} 
-                                    style={{ marginTop: '16px', padding: '12px', background: '#10b981', color: 'white', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
-                                >
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                        <PersonStanding className="w-5 h-5" /> Start Trip
-                                    </span>
-                                </button>
-                                
-                                <button 
-                                    onClick={handleSaveRoute}
-                                    disabled={savingRoute}
-                                    style={{ marginTop: '8px', padding: '12px', background: '#e0e7ff', color: '#4338ca', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: 'bold', width: '100%' }}
-                                >
-                                    <span style={{ display: 'flex', alignItems: 'center', gap: '6px', justifyContent: 'center' }}>
-                                        <Star className="w-4 h-4" /> {savingRoute ? 'Saving...' : 'Save Route'}
-                                    </span>
-                                </button>
-                            </div>
-                        )}
-                    </>
-                ) : (
-                    <div className="active-trip-panel" style={{ padding: '24px 0', display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                        <div style={{
-                            width: '80px', height: '80px', borderRadius: '50%', background: '#d1fae5', color: '#10b981', 
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '32px', marginBottom: '16px'
-                        }}>
-                            <MapPin className="w-8 h-8" />
-                        </div>
-                        <h2 style={{ margin: '0 0 8px 0', fontSize: '24px', color: '#111827' }}>Tracking Active</h2>
-                        <p style={{ color: '#4b5563', marginBottom: '24px' }}>Follow the blue path on the map. Your location is being tracked in real-time.</p>
-                        
-                        <div style={{ width: '100%', padding: '16px', background: '#f3f4f6', borderRadius: '8px', marginBottom: '24px' }}>
-                            <p style={{ margin: '0 0 4px 0', fontSize: '12px', color: '#6b7280', textTransform: 'uppercase', fontWeight: 'bold' }}>Destination</p>
-                            <p style={{ margin: 0, fontSize: '14px', fontFamily: 'monospace' }}>{destLat}, {destLng}</p>
-                        </div>
-
-                        {/* SOS Quick Dial Section */}
-                        <div style={{ width: '100%', marginBottom: '24px', textAlign: 'left' }}>
-                            <h3 style={{ fontSize: '16px', color: '#111827', marginBottom: '12px', borderBottom: '1px solid #e5e7eb', paddingBottom: '8px' }}>SOS Quick-Dial</h3>
-                            {emergencyContacts.length > 0 ? (
-                                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                                    {emergencyContacts.map(c => (
-                                        <a key={c.id} href={`tel:${c.phone_number}`} style={{ 
-                                            display: 'block', padding: '12px', background: '#fee2e2', color: '#dc2626', 
-                                            textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center',
-                                            border: '1px solid #fca5a5'
-                                        }}>
-                                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                                <Phone className="w-4 h-4" /> Call {c.name} ({c.relationship})
-                                            </span>
-                                        </a>
-                                    ))}
-                                </div>
-                            ) : (
-                                <p style={{ fontSize: '13px', color: '#6b7280', fontStyle: 'italic', margin: '0 0 12px 0' }}>No emergency contacts saved.</p>
-                            )}
-                            
-                            <a href="tel:911" style={{ 
-                                display: 'block', padding: '12px', background: '#ef4444', color: 'white', 
-                                textDecoration: 'none', borderRadius: '8px', fontWeight: 'bold', textAlign: 'center', marginTop: '12px'
-                            }}>
-                                <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                    <AlertTriangle className="w-4 h-4" /> Call Local Emergency (911)
-                                </span>
-                            </a>
-                        </div>
-
-                        <button 
-                            onClick={handleEndTrip} 
-                            style={{ padding: '12px', background: '#f3f4f6', color: '#4b5563', border: '1px solid #d1d5db', borderRadius: '8px', cursor: 'pointer', fontSize: '16px', fontWeight: 'bold', width: '100%' }}
-                        >
-                            <span style={{ display: 'flex', alignItems: 'center', gap: '8px', justifyContent: 'center' }}>
-                                <Octagon className="w-5 h-5" /> End Trip
-                            </span>
-                        </button>
-                    </div>
-                )}
-            </aside>
-
-            <main className="map-wrapper" style={{ position: 'relative' }}>
-                {/* Weather Overlay */}
                 {weather && (
-                    <div className="absolute top-6 right-6 z-10 bg-white/90 backdrop-blur-md px-4 py-2 rounded-2xl shadow-lg border border-slate-200/50 flex items-center gap-3">
-                        <div className="bg-blue-100 p-2 rounded-xl text-blue-600">
-                            {weather.weathercode <= 3 ? <Sun className="w-5 h-5" /> : 
-                             weather.weathercode <= 60 ? <Cloud className="w-5 h-5" /> : 
-                             weather.weathercode <= 90 ? <CloudRain className="w-5 h-5" /> : 
-                             <CloudLightning className="w-5 h-5" />}
+                    <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-100 px-5 py-3 rounded-2xl shadow-sm mb-6 flex items-center gap-4 cursor-default">
+                        <div className="bg-primary/10 p-3 rounded-xl text-primary">
+                            {weather.weathercode <= 3 ? <Sun className="w-6 h-6" /> : 
+                             weather.weathercode <= 60 ? <Cloud className="w-6 h-6" /> : 
+                             weather.weathercode <= 90 ? <CloudRain className="w-6 h-6" /> : 
+                             <CloudLightning className="w-6 h-6" />}
                         </div>
                         <div>
-                            <p className="text-xs font-bold text-slate-500 uppercase tracking-wider">Current Weather</p>
-                            <p className="text-lg font-extrabold text-slate-800">
-                                {weather.temperature}°C <span className="text-sm font-medium text-slate-500 ml-1">({weather.windspeed} km/h wind)</span>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Current Weather</p>
+                            <p className="text-xl font-black text-foreground flex items-baseline gap-1.5">
+                                {weather.temperature}°C 
+                                <span className="text-xs font-medium text-muted-foreground">({weather.windspeed} km/h)</span>
                             </p>
                         </div>
                     </div>
                 )}
 
+                {!isTracking ? (
+                    <div className="flex flex-col gap-6">
+                        
+                        {/* Saved Routes */}
+                        {savedRoutes.length > 0 && (
+                            <div>
+                                <p className="text-xs font-bold text-muted-foreground mb-3 uppercase tracking-wider">Quick Select</p>
+                                <div className="flex flex-wrap gap-2">
+                                    {savedRoutes.map(r => (
+                                        <button 
+                                            key={r.id} 
+                                            onClick={() => handleSelectSavedRoute(r)}
+                                            className="px-3 py-1.5 bg-indigo-50 text-indigo-700 text-xs font-bold rounded-full flex items-center gap-1.5 hover:bg-indigo-100 transition-colors"
+                                        >
+                                            <Star className="w-3 h-3 fill-indigo-700" /> {r.name}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                        )}
+                        <form onSubmit={handleFetchRoute} className="flex flex-col gap-5">
+                            
+                            {/* Origin */}
+                            <div>
+                                <div className="flex justify-between items-center mb-2">
+                                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Origin</h3>
+                                    <button 
+                                        type="button" 
+                                        onClick={handleUseCurrentLocation}
+                                        disabled={locationLoading}
+                                        className="text-blue-600 hover:text-blue-700 text-xs font-semibold flex items-center gap-1 bg-transparent border-none p-0 cursor-pointer"
+                                    >
+                                        <MapPin className="w-3.5 h-3.5" />
+                                        {locationLoading ? 'Locating...' : 'Use Current'}
+                                    </button>
+                                </div>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="number" step="any" placeholder="Lat" 
+                                        value={originLat} onChange={(e) => setOriginLat(e.target.value)} required 
+                                        className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all shadow-sm"
+                                    />
+                                    <input 
+                                        type="number" step="any" placeholder="Lng" 
+                                        value={originLng} onChange={(e) => setOriginLng(e.target.value)} required 
+                                        className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all shadow-sm"
+                                    />
+                                </div>
+                            </div>
+                            {/* Destination */}
+                            <div>
+                                <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-2">Destination</h3>
+                                <div className="flex gap-2">
+                                    <input 
+                                        type="number" step="any" placeholder="Lat" 
+                                        value={destLat} onChange={(e) => setDestLat(e.target.value)} required 
+                                        className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all shadow-sm"
+                                    />
+                                    <input 
+                                        type="number" step="any" placeholder="Lng" 
+                                        value={destLng} onChange={(e) => setDestLng(e.target.value)} required 
+                                        className="w-full px-3 py-2 bg-background border border-input rounded-lg text-sm font-medium focus:outline-none focus:ring-2 focus:ring-ring focus:border-transparent transition-all shadow-sm"
+                                    />
+                                </div>
+                                <p className="text-[11px] text-muted-foreground mt-1.5 italic">Tap anywhere on the map to easily set a destination.</p>
+                            </div>
+                            <button type="submit" disabled={loading} className="w-full py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg shadow-primary/20 hover:-translate-y-0.5 hover:shadow-primary/30 transition-all disabled:opacity-50 disabled:hover:translate-y-0">
+                                {loading ? 'Fetching route...' : 'Get Route Preview'}
+                            </button>
+                        </form>
+                        {error && (
+                            <div className="bg-destructive/10 border border-destructive/20 text-destructive p-3 rounded-lg text-sm font-semibold">
+                                {error}
+                            </div>
+                        )}
+                        {routeStats && (
+                            <div className="pt-5 border-t border-border">
+                                <h3 className="text-sm font-bold text-foreground mb-4">Route Details</h3>
+                                
+                                <div className="grid grid-cols-3 gap-3 mb-5">
+                                    <div className="bg-card border border-border p-3 rounded-xl shadow-sm flex flex-col">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Distance</span>
+                                        <span className="text-lg font-black text-foreground">{(routeStats.distance / 1000).toFixed(2)} km</span>
+                                    </div>
+                                    <div className="bg-card border border-border p-3 rounded-xl shadow-sm flex flex-col">
+                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Time</span>
+                                        <span className="text-lg font-black text-foreground">{Math.round(routeStats.duration / 60)} min</span>
+                                    </div>
+                                    <div className="bg-card p-3 rounded-xl shadow-sm flex flex-col border-2" style={{ borderColor: getScoreColor(routeStats.score) }}>
+                                        <span className="text-[10px] font-bold uppercase tracking-wider mb-1" style={{ color: getScoreColor(routeStats.score) }}>Safety Score</span>
+                                        <span className="text-lg font-black" style={{ color: getScoreColor(routeStats.score) }}>{routeStats.score}/100</span>
+                                    </div>
+                                </div>
+                                
+                                <div className="bg-blue-50 border border-blue-100 p-4 rounded-xl mb-4">
+                                    <h4 className="text-xs font-bold text-blue-900 mb-2">Route Insights:</h4>
+                                    <ul className="text-xs font-medium text-blue-800 space-y-1 pl-4 list-disc marker:text-blue-400 mb-4">
+                                        {routeStats.advisories && routeStats.advisories.map((adv, idx) => (
+                                            <li key={idx}>{adv}</li>
+                                        ))}
+                                    </ul>
+                                    
+                                    {/* AI ADVISORY WIDGET */}
+                                    <div className="pt-3 border-t border-blue-200/60 mt-2">
+                                        {!aiAdvisory ? (
+                                            <button 
+                                                onClick={(e) => { e.preventDefault(); handleGetAiAdvisory(); }} 
+                                                disabled={fetchingAi}
+                                                className="w-full py-2 bg-gradient-to-r from-blue-600 to-indigo-600 text-white text-xs font-bold rounded-lg shadow-sm hover:opacity-90 transition-opacity flex items-center justify-center gap-2 disabled:opacity-70"
+                                            >
+                                                <Sparkles className="w-3.5 h-3.5" /> 
+                                                {fetchingAi ? 'Analyzing Route...' : 'Get AI Safety Advisory'}
+                                            </button>
+                                        ) : (
+                                            <div className="bg-white/60 p-3 rounded-lg border border-blue-100 animate-in fade-in zoom-in-95">
+                                                <div className="flex items-center gap-1.5 mb-2 text-indigo-700">
+                                                    <Sparkles className="w-3.5 h-3.5" />
+                                                    <h5 className="text-[10px] font-black uppercase tracking-wider m-0">Gemini AI Advisory</h5>
+                                                </div>
+                                                <p className="text-xs font-medium text-slate-700 leading-relaxed italic">"{aiAdvisory}"</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <button onClick={handleStartTrip} className="w-full py-3 bg-emerald-500 text-white font-bold rounded-xl shadow-lg shadow-emerald-500/20 hover:-translate-y-0.5 hover:shadow-emerald-500/30 transition-all flex justify-center items-center gap-2 mb-2">
+                                        <PersonStanding className="w-5 h-5" /> Start Trip
+                                    </button>
+                                    
+                                    <button onClick={handleSaveRoute} disabled={savingRoute} className="w-full py-3 bg-secondary text-secondary-foreground font-bold rounded-xl hover:bg-secondary/80 transition-all flex justify-center items-center gap-2">
+                                        <Star className="w-4 h-4" /> {savingRoute ? 'Saving...' : 'Save Route'}
+                                    </button> 
+                                </div>
+                            </div>
+                        )}
+                    </div>
+                ) : (
+                    // Tracking Mode UI (unchanged logic, just styled)
+                    <div className="flex flex-col items-center text-center py-8">
+                        <div className="w-20 h-20 rounded-full bg-emerald-100 text-emerald-500 flex items-center justify-center shadow-inner mb-4">
+                            <MapPin className="w-10 h-10" />
+                        </div>
+                        <h2 className="text-2xl font-black text-foreground mb-2">Tracking Active</h2>
+                        <p className="text-sm font-medium text-muted-foreground mb-6">Follow the blue path on the map. Your location is being tracked in real-time.</p>
+                        
+                        <div className="w-full p-4 bg-muted/50 rounded-xl mb-6 text-left">
+                            <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-1">Destination</p>
+                            <p className="text-sm font-mono font-bold">{destLat}, {destLng}</p>
+                        </div>
+                        <div className="w-full mb-6">
+                            <h3 className="text-sm font-bold border-b border-border pb-2 mb-3 text-left">SOS Quick-Dial</h3>
+                            {emergencyContacts.length > 0 ? (
+                                <div className="flex flex-col gap-2">
+                                    {emergencyContacts.map(c => (
+                                        <a key={c.id} href={`tel:${c.phone_number}`} className="flex items-center justify-center gap-2 w-full py-3 bg-red-50 text-red-600 border border-red-200 rounded-xl font-bold hover:bg-red-100 transition-colors">
+                                            <Phone className="w-4 h-4" /> Call {c.name}
+                                        </a>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-xs text-muted-foreground italic text-left">No emergency contacts saved.</p>
+                            )}
+                            
+                            <a href="tel:911" className="flex items-center justify-center gap-2 w-full py-3 bg-destructive text-destructive-foreground rounded-xl font-bold shadow-lg shadow-destructive/20 mt-3 hover:opacity-90 transition-opacity">
+                                <AlertTriangle className="w-4 h-4" /> Call 911
+                            </a>
+                        </div>
+                        <button onClick={handleEndTrip} className="w-full py-3 bg-secondary text-secondary-foreground font-bold rounded-xl hover:bg-secondary/80 flex items-center justify-center gap-2 transition-colors">
+                            <Octagon className="w-5 h-5" /> End Trip
+                        </button>
+                    </div>
+                )}
+            </aside>
+            <main className="flex-grow relative bg-slate-100">
+                {/* Tailwind Styled Weather Overlay */}
+                {weather && (
+                    <div className="absolute top-6 right-6 z-30 bg-background/90 backdrop-blur-xl px-5 py-3 rounded-2xl shadow-xl shadow-black/5 border border-border flex items-center gap-4 hover:-translate-y-1 transition-transform cursor-default">
+                        <div className="bg-primary/5 p-3 rounded-xl text-primary">
+                            {weather.weathercode <= 3 ? <Sun className="w-6 h-6" /> : 
+                             weather.weathercode <= 60 ? <Cloud className="w-6 h-6" /> : 
+                             weather.weathercode <= 90 ? <CloudRain className="w-6 h-6" /> : 
+                             <CloudLightning className="w-6 h-6" />}
+                        </div>
+                        <div>
+                            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest mb-0.5">Current Weather</p>
+                            <p className="text-xl font-black text-foreground flex items-baseline gap-1.5">
+                                {weather.temperature}°C 
+                                <span className="text-xs font-medium text-muted-foreground">({weather.windspeed} km/h)</span>
+                            </p>
+                        </div>
+                    </div>
+                )}
                 <Map 
                     routeGeometry={routeGeometry} 
                     onSetDestination={(latlng) => {
@@ -483,9 +440,9 @@ export function HomePage() {
                     origin={{lat: parseFloat(originLat), lng: parseFloat(originLng)}}
                     destination={{lat: parseFloat(destLat), lng: parseFloat(destLng)}}
                     onArrived={handleArrived}
+                    user={user}
                 />
             </main>
-            
         </div>
     )
 }
