@@ -46,7 +46,7 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
         ]
     }
 
-    active_incidents = IncidentReport.objects.exclude(status__in=['RESOLVED', 'SPAM'])
+    active_incidents = IncidentReport.objects.filter(status='APPROVED')
 
     avoid_polygons_coords = []
 
