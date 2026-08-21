@@ -37,11 +37,22 @@ export async function client(path, options = {}) {
     const data = isJson ? await response.json() : null
 
     if(!response.ok) {
-        const message = 
-        data?.detail ||
-        `Request failed with status ${response.status}`;
+        // Attempt to extract Django DRF dictionary errors
+        let parsedMessage = data?.detail
         
-        throw new APIError(message, response.status, data);
+        if(!parsedMessage && data && typeof data === 'object') {
+            parsedMessage = Object.entries(data)
+                .map(([field, errors]) => {
+                    const formattedField = field.charAt(0).toUpperCase() + field.slice(1)
+                    const errorStr = Array.isArray(errors) ? errors.join(' ') : errors
+                    return `${formattedField}: ${errorStr}`
+                })
+                .join(' | ')
+        }
+
+        const message = parsedMessage || `Request failed with status ${response.status}`
+
+        throw new APIError(message, response.status, data)
     }
-    return data;
+    return data
 }

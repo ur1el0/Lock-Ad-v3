@@ -1,5 +1,5 @@
 from rest_framework import serializers
-from .models import EmergencyContact
+from emergency.models import EmergencyContact
 
 class EmergencyContactSerializer(serializers.ModelSerializer):
     class Meta:

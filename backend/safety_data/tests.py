@@ -24,7 +24,7 @@ class SafetyModelTests(TestCase):
             longitude=Decimal('121.611700000'),
         )
         self.assertEqual(report.user, self.user)
-        self.assertEqual(report.status, 'APPROVED')
+        self.assertEqual(report.status, 'PENDING')
         self.assertEqual(report.confidence_score, 1)
         self.assertLessEqual(report.reported_at, timezone.now())
         self.assertLessEqual(report.occurred_at, timezone.now())

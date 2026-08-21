@@ -3,6 +3,7 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { fetchSafetySignals, fetchIncidents } from '../api/safety'
 import { ReportModal } from './ReportModal'
+import { Shield } from "lucide-react";
 
 delete L.Icon.Default.prototype._getIconUrl
 L.Icon.Default.mergeOptions({
@@ -22,7 +23,21 @@ const liveLocationIcon = L.divIcon({
     iconAnchor: [8, 8]
 });
 
-export function Map({ routeGeometry, onSetDestination, isTracking, destination, origin, onArrived }) {
+const destIcon = L.divIcon({
+    className: 'custom-dest-icon bg-transparent border-none',
+    html: `<div style="width: 20px; height: 20px; background-color: #ef4444; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+})
+
+const originIcon = L.divIcon({
+    className: 'custom-origin-icon bg-transparent border-none',
+    html: `<div style="width: 20px; height: 20px; background-color: #10b981; border: 3px solid white; border-radius: 50%; box-shadow: 0 4px 6px rgba(0,0,0,0.3);"></div>`,
+    iconSize: [20, 20],
+    iconAnchor: [10, 10]
+});
+
+export function Map({ routeGeometry, onSetDestination, isTracking, destination, origin, onArrived, user }) {
     const mapContainerRef = useRef(null)
     const mapRef = useRef(null)
     const geoJsonLayerRef = useRef(null)
@@ -34,6 +49,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
     // Modal state
     const [reportLocation, setReportLocation] = useState(null)
     const [selectedMapLocation, setSelectedMapLocation] = useState(null)
+    const [showFilters, setShowFilters] = useState(false)
 
     // Internal Filters state
     const [filters, setFilters] = useState({
@@ -181,8 +197,8 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
         if (destination && !isNaN(destination.lat) && !isNaN(destination.lng)) {
             const latlng = L.latLng(destination.lat, destination.lng);
             if (!destMarkerRef.current) {
-                // Add a destination marker
-                destMarkerRef.current = L.marker(latlng).addTo(map).bindPopup("Destination");
+                // Add a destination marker using our custom red icon
+                destMarkerRef.current = L.marker(latlng, { icon: destIcon }).addTo(map).bindPopup("Destination");
             } else {
                 destMarkerRef.current.setLatLng(latlng);
             }
@@ -201,8 +217,8 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
         if (origin && !isNaN(origin.lat) && !isNaN(origin.lng)) {
             const latlng = L.latLng(origin.lat, origin.lng);
             if (!originMarkerRef.current) {
-                // Add an origin marker (you could customize the icon here)
-                originMarkerRef.current = L.marker(latlng).addTo(map).bindPopup("Origin");
+                // Add an origin marker using custom green icon
+                originMarkerRef.current = L.marker(latlng, { icon: originIcon }).addTo(map).bindPopup("Origin");
             } else {
                 originMarkerRef.current.setLatLng(latlng);
             }
@@ -268,8 +284,8 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
     useEffect(() => {
         // Use ws:// for local dev. In production with HTTPS, use wss://
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        // Assuming the backend runs on localhost:8001
-        const wsUrl = `${wsProtocol}//localhost:8001/ws/incidents/`
+        // Assuming the backend runs on localhost:8004
+        const wsUrl = `${wsProtocol}//localhost:8004/ws/incidents/`
 
         const socket = new WebSocket(wsUrl)
 
@@ -283,16 +299,11 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                 const newIncident = data.data
                 console.log("New incident received!", newIncident)
 
-                // Add the new marker to the map instantly
-                if (window.google) {
-                    new window.google.maps.Marker({
-                        position: { lat: parseFloat(newIncident.latitude), lng: parseFloat(newIncident.longitude) },
-                        map: mapRef.current,
-                        title: newIncident.incident_type,
-                        icon: {
-                            url: 'http://maps.google.com/mapfiles/ms/icons/red-dot.png'
-                        }
-                    })
+                // Add the new marker to the map instantly using Leaflet
+                if (markersLayerRef.current) {
+                    const marker = L.marker([newIncident.latitude, newIncident.longitude])
+                    marker.bindPopup(`<b>${newIncident.incident_type}</b><br/>Status: ${newIncident.status}`)
+                    markersLayerRef.current.addLayer(marker)
                 }
             }
         }
@@ -307,7 +318,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
     }, [])
 
     return (
-        <div style={{ width: '100%', height: '100%', position: 'relative' }}>
+        <div className="w-full h-full relative">
             <style>
                 {`
                 @keyframes pulse {
@@ -319,101 +330,104 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
             </style>
             <div
                 ref={mapContainerRef}
-                style={{ width: '100%', height: '100%', borderRadius: '12px'}}
+                className="w-full h-full rounded-none"
             />
 
-            {!isTracking && (
-                <div style={{
-                    position: 'absolute',
-                    top: '12px',
-                    right: '12px',
-                    backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                    padding: '12px',
-                    borderRadius: '8px',
-                    boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
-                    zIndex: 1000,
-                    width: '240px',
-                    maxHeight: '80%',
-                    overflowY: 'auto'
-                }}>
-                    <h4 style={{ marginTop: 0, marginBottom: '8px', fontSize: '14px' }}>Map Filters</h4>
-                    
-                    <div style={{ marginBottom: '12px' }}>
-                        <strong style={{ fontSize: '12px', color: '#555' }}>Infrastructure</strong>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                            {Object.keys(filters.signals).map(type => (
-                                <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={filters.signals[type]} 
-                                        onChange={() => handleFilterChange('signals', type)}
-                                    />
-                                    {type}
-                                </label>
-                            ))}
-                        </div>
-                    </div>
+            {/* ONLY ADMINS SEE FILTERS */}
+            {!isTracking && user?.is_staff && (
+                <div className="absolute top-6 right-6 z-[1000] flex flex-col items-end gap-3">
+                    {/* Toggle Button */}
+                    <button 
+                        onClick={() => setShowFilters(!showFilters)}
+                        className={`p-3 rounded-xl shadow-lg border transition-all flex items-center gap-2 font-bold text-sm ${showFilters ? 'bg-primary text-primary-foreground border-primary' : 'bg-background text-foreground border-border hover:bg-muted'}`}
+                    >
+                        <Shield className="w-4 h-4" />
+                        {showFilters ? 'Hide Filters' : 'Map Filters'}
+                    </button>
 
-                    <div>
-                        <strong style={{ fontSize: '12px', color: '#555' }}>User Incidents</strong>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginTop: '4px' }}>
-                            {Object.keys(filters.incidents).map(type => (
-                                <label key={type} style={{ fontSize: '12px', display: 'flex', alignItems: 'center', gap: '6px' }}>
-                                    <input 
-                                        type="checkbox" 
-                                        checked={filters.incidents[type]} 
-                                        onChange={() => handleFilterChange('incidents', type)}
-                                    />
-                                    {type}
-                                </label>
-                            ))}
+                    {/* Filter Panel (Only shown if showFilters is true) */}
+                    {showFilters && (
+                        <div className="bg-background/95 backdrop-blur-xl p-4 rounded-xl shadow-xl border border-border w-64 max-h-[70vh] overflow-y-auto animate-in fade-in slide-in-from-top-4">
+                            <h4 className="mt-0 mb-3 text-sm font-bold text-foreground flex items-center gap-2 border-b border-border pb-2">
+                                <Shield className="w-4 h-4 text-destructive" /> Moderator Filters
+                            </h4>
+                            
+                            <div className="mb-4">
+                                <strong className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Infrastructure</strong>
+                                <div className="flex flex-col gap-2 mt-2">
+                                    {Object.keys(filters.signals).map(type => (
+                                        <label key={type} className="flex items-center gap-3 text-xs font-semibold text-foreground cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filters.signals[type]} 
+                                                onChange={() => handleFilterChange('signals', type)}
+                                                className="w-4 h-4 rounded border-input text-primary focus:ring-primary accent-primary"
+                                            />
+                                            {type}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
+
+                            <div>
+                                <strong className="text-xs font-bold text-muted-foreground uppercase tracking-wider">User Incidents</strong>
+                                <div className="flex flex-col gap-2 mt-2">
+                                    {Object.keys(filters.incidents).map(type => (
+                                        <label key={type} className="flex items-center gap-3 text-xs font-semibold text-foreground cursor-pointer hover:bg-muted p-1.5 rounded-md transition-colors">
+                                            <input 
+                                                type="checkbox" 
+                                                checked={filters.incidents[type]} 
+                                                onChange={() => handleFilterChange('incidents', type)}
+                                                className="w-4 h-4 rounded border-input text-primary focus:ring-primary accent-primary"
+                                            />
+                                            {type}
+                                        </label>
+                                    ))}
+                                </div>
+                            </div>
                         </div>
-                    </div>
+                    )}
                 </div>
             )}
 
             {selectedMapLocation && !reportLocation && !isTracking && (
-                <div style={{
-                    position: 'absolute', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(0,0,0,0.3)', zIndex: 9999,
-                    display: 'flex', justifyContent: 'center', alignItems: 'center'
-                }}>
-                    <div style={{
-                        background: 'white', padding: '24px', borderRadius: '8px', 
-                        width: '300px', boxShadow: '0 4px 6px rgba(0,0,0,0.1)',
-                        display: 'flex', flexDirection: 'column', gap: '12px'
-                    }}>
-                        <h3 style={{ marginTop: 0, marginBottom: 0 }}>Map Action</h3>
-                        <p style={{ margin: 0, fontSize: '14px', color: '#555' }}>
-                            {selectedMapLocation.lat.toFixed(4)}, {selectedMapLocation.lng.toFixed(4)}
-                        </p>
+                <div className="absolute inset-0 bg-black/40 backdrop-blur-sm z-[9999] flex justify-center items-center">
+                    <div className="bg-background p-6 rounded-2xl w-[320px] shadow-2xl border border-border flex flex-col gap-4 transform transition-all">
+                        <div>
+                            <h3 className="m-0 text-lg font-bold text-foreground">Map Action</h3>
+                            <p className="m-0 text-xs font-mono text-muted-foreground mt-1">
+                                {selectedMapLocation.lat.toFixed(4)}, {selectedMapLocation.lng.toFixed(4)}
+                            </p>
+                        </div>
                         
-                        <button 
-                            onClick={() => {
-                                if (onSetDestination) onSetDestination(selectedMapLocation);
-                                setSelectedMapLocation(null);
-                            }} 
-                            style={{ padding: '10px', background: '#2563eb', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        >
-                            Set as Destination
-                        </button>
-                        
-                        <button 
-                            onClick={() => {
-                                setReportLocation(selectedMapLocation);
-                                setSelectedMapLocation(null);
-                            }} 
-                            style={{ padding: '10px', background: '#ef4444', color: 'white', border: 'none', borderRadius: '4px', cursor: 'pointer' }}
-                        >
-                            Report Hazard Here
-                        </button>
+                        <div className="flex flex-col gap-2 mt-2">
+                            <button 
+                                onClick={() => {
+                                    if (onSetDestination) onSetDestination(selectedMapLocation);
+                                    setSelectedMapLocation(null);
+                                }} 
+                                className="w-full py-2.5 bg-primary text-primary-foreground font-bold rounded-xl shadow-md hover:bg-primary/90 transition-colors"
+                            >
+                                Set as Destination
+                            </button>
+                            
+                            <button 
+                                onClick={() => {
+                                    setReportLocation(selectedMapLocation);
+                                    setSelectedMapLocation(null);
+                                }} 
+                                className="w-full py-2.5 bg-destructive text-destructive-foreground font-bold rounded-xl shadow-md hover:bg-destructive/90 transition-colors"
+                            >
+                                Report Hazard Here
+                            </button>
 
-                        <button 
-                            onClick={() => setSelectedMapLocation(null)} 
-                            style={{ padding: '10px', background: '#f3f4f6', color: '#374151', border: 'none', borderRadius: '4px', cursor: 'pointer', marginTop: '8px' }}
-                        >
-                            Cancel
-                        </button>
+                            <button 
+                                onClick={() => setSelectedMapLocation(null)} 
+                                className="w-full py-2.5 mt-2 bg-secondary text-secondary-foreground font-bold rounded-xl hover:bg-secondary/80 transition-colors"
+                            >
+                                Cancel
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}
