@@ -36,20 +36,21 @@ class IncidentReport(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     incident_type = models.CharField(max_length=20, choices=INCIDENT_TYPES)
     description = models.TextField(blank=True, null=True)
-    latitude = models.DecimalField(max_digits=12, decimal_places=9)
-    longitude = models.DecimalField(max_digits=12, decimal_places=9)
-    status = models.CharField(max_length=20, choices=REPORT_STATUS, default='PENDING')
+    latitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
+    longitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
+    status = models.CharField(max_length=20, choices=REPORT_STATUS, default='PENDING', db_index=True)
     confidence_score = models.IntegerField(default=1)
-    reported_at = models.DateTimeField(auto_now_add=True)
+    reported_at = models.DateTimeField(auto_now_add=True, db_index=True)
     occurred_at = models.DateTimeField(default=timezone.now)
+
 
 
 class SafetySignal(models.Model):
     source = models.CharField(max_length=20, choices=SIGNAL_SOURCES)
     signal_type = models.CharField(max_length=20, choices=SIGNAL_TYPES)
     name = models.CharField(max_length=255)
-    latitude = models.DecimalField(max_digits=12, decimal_places=9)
-    longitude = models.DecimalField(max_digits=12, decimal_places=9)
+    latitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
+    longitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
     tags = models.JSONField(default=dict, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
