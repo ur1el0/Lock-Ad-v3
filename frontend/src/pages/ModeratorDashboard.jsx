@@ -22,11 +22,11 @@ export function ModeratorDashboard() {
 
     const getIcon = (type) => {
         switch(type) {
-            case 'LIGHTING': return <LightbulbOff className="w-4 h-4 text-amber-500" />;
-            case 'HAZARD': return <AlertTriangle className="w-4 h-4 text-orange-500" />;
-            case 'INCIDENT': return <ShieldAlert className="w-4 h-4 text-rose-500" />;
-            case 'ACCIDENT': return <Car className="w-4 h-4 text-red-500" />;
-            default: return <AlertTriangle className="w-4 h-4 text-muted-foreground" />;
+            case 'LIGHTING': return <LightbulbOff className="w-4 h-4 text-amber-500" aria-hidden="true" />;
+            case 'HAZARD': return <AlertTriangle className="w-4 h-4 text-orange-500" aria-hidden="true" />;
+            case 'INCIDENT': return <ShieldAlert className="w-4 h-4 text-rose-500" aria-hidden="true" />;
+            case 'ACCIDENT': return <Car className="w-4 h-4 text-red-500" aria-hidden="true" />;
+            default: return <AlertTriangle className="w-4 h-4 text-muted-foreground" aria-hidden="true" />;
         }
     }
 
@@ -63,7 +63,7 @@ export function ModeratorDashboard() {
                 ) : (
                     <div className="bg-card rounded-3xl border border-border shadow-sm overflow-hidden">
                         <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
+                            <table className="w-full text-left border-collapse" aria-label="Incident Reports Table">
                                 <thead>
                                     <tr className="bg-muted/50 border-b border-border text-xs uppercase tracking-wider text-muted-foreground">
                                         <th className="p-4 font-bold">ID</th>

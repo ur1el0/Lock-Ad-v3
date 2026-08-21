@@ -35,11 +35,11 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 animate-in fade-in duration-200">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
             <div className="bg-background border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col gap-5 animate-in zoom-in-95 duration-200">
                 
                 <div className="border-b border-border pb-3">
-                    <h2 className="m-0 text-xl font-extrabold text-foreground tracking-tight">Report Incident</h2>
+                    <h2 id="modal-title" className="m-0 text-xl font-extrabold text-foreground tracking-tight">Report Incident</h2>
                     <p className="m-0 mt-1 text-xs font-medium text-muted-foreground">
                         Location: <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">{lat.toFixed(4)}, {lng.toFixed(4)}</span>
                     </p>
@@ -53,8 +53,8 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                 
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     
-                    <div className="flex flex-col gap-2">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Incident Type</label>
+                    <div className="flex flex-col gap-2" role="group" aria-labelledby="incident-type-label">
+                        <label id="incident-type-label" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Incident Type</label>
                         <div className="grid grid-cols-2 gap-2">
                             {INCIDENT_TYPES.map((type) => {
                                 const Icon = type.icon;
@@ -63,6 +63,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                                     <button
                                         key={type.id}
                                         type="button"
+                                        aria-pressed={isSelected}
                                         onClick={() => setIncidentType(type.id)}
                                         className={`flex flex-col items-center justify-center gap-2 p-3 rounded-xl border transition-all ${
                                             isSelected 
@@ -70,7 +71,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                                                 : 'bg-muted border-transparent hover:bg-muted/80 opacity-70 hover:opacity-100'
                                         }`}
                                     >
-                                        <Icon className={`w-6 h-6 ${isSelected ? type.color : 'text-muted-foreground'}`} />
+                                        <Icon className={`w-6 h-6 ${isSelected ? type.color : 'text-muted-foreground'}`} aria-hidden="true" />
                                         <span className={`text-xs font-bold ${isSelected ? type.color : 'text-muted-foreground'}`}>
                                             {type.label}
                                         </span>
@@ -81,8 +82,9 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                     </div>
 
                     <div className="flex flex-col gap-1.5 mt-2">
-                        <label className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description (Optional)</label>
+                        <label htmlFor="incident-description" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description (Optional)</label>
                         <textarea 
+                            id="incident-description"
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             rows={2}
