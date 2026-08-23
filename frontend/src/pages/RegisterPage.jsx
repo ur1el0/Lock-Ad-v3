@@ -1,7 +1,8 @@
 import { useState } from "react"
-import { useNavigate } from "react-router-dom"
+import { useNavigate, Link } from "react-router-dom"
 import { APIError } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
+import { User, Lock, Mail, KeyRound, AlertCircle, UserPlus } from 'lucide-react'
 
 export function RegisterPage() {
     const [ formData, setFormData ] = useState({
@@ -19,9 +20,8 @@ export function RegisterPage() {
 
     function handleChange(event) {
         const { name, value } = event.target
-
-        setFormData((currentFormData) => ({
-            ...currentFormData,
+        setFormData((current) => ({
+            ...current,
             [name]: value,
         }))
     }
@@ -49,62 +49,132 @@ export function RegisterPage() {
     }
 
     return(
-        <main>
-            <h1>Register</h1>
+        <main className="min-h-screen w-full flex items-center justify-center bg-background p-4 animate-in fade-in duration-500">
+            <div className="w-full max-w-md bg-card/95 backdrop-blur-md border border-border p-8 rounded-3xl shadow-2xl flex flex-col gap-6 relative overflow-hidden">
+                
+                {/* Decorative Top Accent */}
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"></div>
 
-            <form onSubmit={handleSubmit}>
-                {errorMessage && (
-                    <p role="alert">{errorMessage}</p>
-                )}
+                <div className="flex flex-col items-center text-center">
+                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
+                        <UserPlus className="w-6 h-6 text-primary" />
+                    </div>
+                    <h1 className="text-2xl font-extrabold tracking-tight text-foreground m-0">Create Account</h1>
+                    <p className="text-sm font-medium text-muted-foreground mt-2">Join the Lock-Ad community today</p>
+                </div>
 
-                <label htmlFor="username">Username</label>
-                <input
-                    id="username"
-                    name="username"
-                    type="text"
-                    autoComplete="username"
-                    value={formData.username}
-                    onChange={handleChange}
-                    required
-                />
+                <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
+                    
+                    {errorMessage && (
+                        <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-xl flex items-center gap-2 animate-in slide-in-from-top-2">
+                            <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+                            <p className="text-sm font-bold text-destructive m-0" role="alert">{errorMessage}</p>
+                        </div>
+                    )}
 
-                <label htmlFor="email">Email</label>
-                <input 
-                    id="email"
-                    name="email"
-                    type="email"
-                    autoComplete="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    required 
-                />
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="username" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Username</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <User className="w-4 h-4 text-muted-foreground/50" />
+                            </div>
+                            <input
+                                id="username"
+                                name="username"
+                                type="text"
+                                autoComplete="username"
+                                value={formData.username}
+                                onChange={handleChange}
+                                required
+                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
+                                placeholder="Choose a username"
+                            />
+                        </div>
+                    </div>
 
-                <label htmlFor="password">Password</label>
-                <input 
-                    id="password"
-                    name="password"
-                    type="password"
-                    autoComplete="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    required
-                />
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="email" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Email</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Mail className="w-4 h-4 text-muted-foreground/50" />
+                            </div>
+                            <input 
+                                id="email"
+                                name="email"
+                                type="email"
+                                autoComplete="email"
+                                value={formData.email}
+                                onChange={handleChange}
+                                required 
+                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
+                                placeholder="name@example.com"
+                            />
+                        </div>
+                    </div>
 
-                <label htmlFor="password-confirm">Password Confirm</label>
-                <input 
-                    id="password_confirm"
-                    name="password_confirm"
-                    type="password"
-                    value={formData.password_confirm}
-                    onChange={handleChange}
-                    required
-                    disabled={isSubmitting}
-                />
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Password</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <Lock className="w-4 h-4 text-muted-foreground/50" />
+                            </div>
+                            <input 
+                                id="password"
+                                name="password"
+                                type="password"
+                                autoComplete="new-password"
+                                value={formData.password}
+                                onChange={handleChange}
+                                required
+                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
+                                placeholder="Create a strong password"
+                            />
+                        </div>
+                    </div>
 
-                <button type="submit" disabled={isSubmitting}>
-                    {isSubmitting ? 'Registering...' : "Register"}
-                </button>
-            </form>
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="password_confirm" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Confirm Password</label>
+                        <div className="relative">
+                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                <KeyRound className="w-4 h-4 text-muted-foreground/50" />
+                            </div>
+                            <input 
+                                id="password_confirm"
+                                name="password_confirm"
+                                type="password"
+                                autoComplete="new-password"
+                                value={formData.password_confirm}
+                                onChange={handleChange}
+                                required
+                                disabled={isSubmitting}
+                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40 disabled:opacity-50"
+                                placeholder="Confirm your password"
+                            />
+                        </div>
+                    </div>
+
+                    <button 
+                        type="submit" 
+                        disabled={isSubmitting}
+                        className="w-full mt-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl py-3.5 shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
+                    >
+                        {isSubmitting ? (
+                            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
+                        ) : (
+                            "Sign Up"
+                        )}
+                    </button>
+                </form>
+
+                <div className="text-center mt-2">
+                    <p className="text-sm font-medium text-muted-foreground">
+                        Already have an account?{' '}
+                        <Link to="/login" className="text-primary font-bold hover:underline underline-offset-4">
+                            Log in
+                        </Link>
+                    </p>
+                </div>
+            </div>
         </main>
     )
 }
