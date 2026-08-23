@@ -8,8 +8,6 @@ import {
 } from 'lucide-react';
 import { useRoute } from "../context/RouteContext";
 
-import { useRoute } from "../context/RouteContext"; // <-- Import it at the top
-
 export function RoutePlannerPage() {
     const { 
         originLat, setOriginLat, 
