@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
 import { getEmergencyContacts, addEmergencyContact, deleteEmergencyContact } from "../api/emergency";
+import { ShieldAlert, Trash2, UserPlus, Phone, AlertCircle, ShieldCheck } from "lucide-react";
 
 export function EmergencyContactsPage() {
     const [contacts, setContacts] = useState([]);
@@ -12,7 +12,6 @@ export function EmergencyContactsPage() {
     const [phoneNumber, setPhoneNumber] = useState('');
     const [relationship, setRelationship] = useState('');
     const [submitting, setSubmitting] = useState(false);
-
 
     async function fetchContacts() {
         try {
@@ -28,7 +27,6 @@ export function EmergencyContactsPage() {
     }
 
     useEffect(() => {
-        // eslint-disable-next-line react-hooks/set-state-in-effect
         fetchContacts();
     }, []);
 
@@ -39,7 +37,6 @@ export function EmergencyContactsPage() {
         try {
             const newContact = await addEmergencyContact({ name, phone_number: phoneNumber, relationship });
             setContacts([...contacts, newContact]);
-            // Clear form
             setName('');
             setPhoneNumber('');
             setRelationship('');
@@ -63,67 +60,137 @@ export function EmergencyContactsPage() {
     }
 
     return (
-        <div className="auth-container">
-            <div className="auth-card" style={{ maxWidth: '500px', width: '100%' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <h1 style={{ margin: 0 }}>Emergency Contacts</h1>
-                    <Link to="/" style={{ color: '#2563eb', textDecoration: 'none' }}>&larr; Back to Map</Link>
+        <div className="min-h-screen bg-background text-foreground pb-24 md:pb-12 animate-in fade-in duration-300">
+            {/* Header */}
+            <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 py-4 md:px-8">
+                <div className="max-w-2xl mx-auto flex items-center gap-3">
+                    <div className="p-2 bg-rose-500/10 rounded-xl">
+                        <ShieldAlert className="w-6 h-6 text-rose-500" />
+                    </div>
+                    <div>
+                        <h1 className="text-xl md:text-2xl font-black tracking-tight m-0 text-foreground">
+                            Emergency Contacts
+                        </h1>
+                        <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
+                            Manage trusted contacts for SOS alerts
+                        </p>
+                    </div>
                 </div>
-                <p className="subtitle">Manage trusted contacts for SOS alerts.</p>
+            </header>
 
-                {error && <div className="error-panel" style={{ marginBottom: '16px' }}>{error}</div>}
+            <main className="max-w-2xl mx-auto px-4 md:px-8 pt-6 space-y-6">
+                {error && (
+                    <div className="flex items-center gap-2 p-4 bg-destructive/10 text-destructive text-sm font-bold rounded-2xl border border-destructive/20">
+                        <AlertCircle className="w-5 h-5 shrink-0" />
+                        <p>{error}</p>
+                    </div>
+                )}
 
-                <div style={{ marginBottom: '24px' }}>
+                {/* Contact List Card */}
+                <section className="bg-card/90 backdrop-blur-md border border-border rounded-3xl p-5 shadow-sm">
+                    <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <ShieldCheck className="w-4 h-4" />
+                        Trusted Network
+                    </h2>
+
                     {loading ? (
-                        <p>Loading contacts...</p>
+                        <div className="flex justify-center items-center py-8">
+                            <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin"></div>
+                        </div>
                     ) : contacts.length === 0 ? (
-                        <p style={{ color: '#6b7280', fontStyle: 'italic' }}>No emergency contacts saved yet.</p>
+                        <div className="text-center py-8">
+                            <UserPlus className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+                            <p className="text-muted-foreground font-medium">No emergency contacts saved yet.</p>
+                        </div>
                     ) : (
-                        <ul style={{ listStyleType: 'none', padding: 0, margin: 0 }}>
+                        <ul className="space-y-3">
                             {contacts.map(contact => (
-                                <li key={contact.id} style={{ padding: '12px', border: '1px solid #e5e7eb', borderRadius: '8px', marginBottom: '8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                    <div>
-                                        <strong style={{ display: 'block' }}>{contact.name}</strong>
-                                        <span style={{ fontSize: '14px', color: '#4b5563' }}>{contact.phone_number} • {contact.relationship}</span>
+                                <li key={contact.id} className="flex items-center justify-between p-4 bg-muted/40 border border-border/50 rounded-2xl hover:bg-muted/60 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                                            <Phone className="w-5 h-5 text-primary" />
+                                        </div>
+                                        <div>
+                                            <strong className="block text-foreground font-bold">{contact.name}</strong>
+                                            <span className="text-xs text-muted-foreground font-medium">
+                                                {contact.phone_number} • {contact.relationship}
+                                            </span>
+                                        </div>
                                     </div>
                                     <button 
                                         onClick={() => handleDelete(contact.id)}
-                                        style={{ background: 'none', border: 'none', color: '#ef4444', cursor: 'pointer', fontSize: '18px' }}
+                                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
                                         title="Delete contact"
                                     >
-                                        &times;
+                                        <Trash2 className="w-5 h-5" />
                                     </button>
                                 </li>
                             ))}
                         </ul>
                     )}
-                </div>
+                </section>
 
-                <h3 style={{ borderTop: '1px solid #e5e7eb', paddingTop: '16px', marginTop: '16px' }}>Add New Contact</h3>
-                <form onSubmit={handleAddContact} style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                    <div className="input-group">
-                        <label>Name</label>
-                        <input type="text" required value={name} onChange={e => setName(e.target.value)} placeholder="Jane Doe" />
-                    </div>
-                    <div className="input-group">
-                        <label>Phone Number</label>
-                        <input type="tel" required value={phoneNumber} onChange={e => setPhoneNumber(e.target.value)} placeholder="+639..." />
-                    </div>
-                    <div className="input-group">
-                        <label>Relationship</label>
-                        <input type="text" required value={relationship} onChange={e => setRelationship(e.target.value)} placeholder="Parent, Spouse, Friend..." />
-                    </div>
-                    
-                    <button type="submit" disabled={submitting || contacts.length >= 3} className="btn-primary" style={{ marginTop: '8px' }}>
-                        {submitting ? 'Adding...' : contacts.length >= 3 ? 'Max 3 Contacts Allowed' : 'Add Contact'}
-                    </button>
-                    {contacts.length >= 3 && (
-                        <p style={{ fontSize: '12px', color: '#ef4444', margin: 0, textAlign: 'center' }}>
-                            You have reached the maximum of 3 emergency contacts.
-                        </p>
-                    )}
-                </form>
-            </div>
+                {/* Add New Contact Form */}
+                <section className="bg-card/90 backdrop-blur-md border border-border rounded-3xl p-5 shadow-sm">
+                    <h2 className="text-sm font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <UserPlus className="w-4 h-4" />
+                        Add New Contact
+                    </h2>
+
+                    <form onSubmit={handleAddContact} className="space-y-4">
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-foreground ml-1">Name</label>
+                            <input 
+                                type="text" 
+                                required 
+                                value={name} 
+                                onChange={e => setName(e.target.value)} 
+                                placeholder="Jane Doe" 
+                                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow placeholder:text-muted-foreground/50"
+                            />
+                        </div>
+                        
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-foreground ml-1">Phone Number</label>
+                            <input 
+                                type="tel" 
+                                required 
+                                value={phoneNumber} 
+                                onChange={e => setPhoneNumber(e.target.value)} 
+                                placeholder="+639..." 
+                                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow placeholder:text-muted-foreground/50"
+                            />
+                        </div>
+
+                        <div className="space-y-1">
+                            <label className="text-xs font-bold text-foreground ml-1">Relationship</label>
+                            <input 
+                                type="text" 
+                                required 
+                                value={relationship} 
+                                onChange={e => setRelationship(e.target.value)} 
+                                placeholder="Parent, Spouse, Friend..." 
+                                className="w-full bg-background border border-border rounded-xl px-4 py-3 text-sm font-medium focus:outline-none focus:ring-2 focus:ring-primary/50 transition-shadow placeholder:text-muted-foreground/50"
+                            />
+                        </div>
+                        
+                        <button 
+                            type="submit" 
+                            disabled={submitting || contacts.length >= 3} 
+                            className="w-full mt-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground font-bold py-3.5 px-4 rounded-xl hover:bg-primary/90 active:scale-[0.98] transition-all disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100 shadow-sm"
+                        >
+                            <UserPlus className="w-5 h-5" />
+                            {submitting ? 'Adding...' : contacts.length >= 3 ? 'Max 3 Contacts Allowed' : 'Add Contact'}
+                        </button>
+                        
+                        {contacts.length >= 3 && (
+                            <p className="text-xs text-destructive text-center font-bold mt-2">
+                                You have reached the maximum of 3 emergency contacts.
+                            </p>
+                        )}
+                    </form>
+                </section>
+            </main>
         </div>
     );
 }
