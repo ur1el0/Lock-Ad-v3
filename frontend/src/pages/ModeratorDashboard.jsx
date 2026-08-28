@@ -57,7 +57,7 @@ export function ModeratorDashboard() {
     };
 
     return (
-        <div className="min-h-screen bg-background text-foreground pb-12 animate-in fade-in duration-300">
+        <div className="min-h-screen bg-background text-foreground pb-24 md:pb-12 animate-in fade-in duration-300">
             {/* Sticky Mobile & Desktop Header */}
             <header className="sticky top-0 z-20 bg-background/80 backdrop-blur-md border-b border-border px-4 py-4 md:px-8">
                 <div className="max-w-6xl mx-auto flex items-center justify-between gap-4">
@@ -69,14 +69,6 @@ export function ModeratorDashboard() {
                             Review and moderate live community reports
                         </p>
                     </div>
-                    <Link
-                        to="/"
-                        className="inline-flex items-center gap-2 px-3.5 py-2 bg-secondary text-secondary-foreground text-xs md:text-sm font-bold rounded-xl hover:bg-secondary/80 transition-colors shadow-sm"
-                        aria-label="Return to main map"
-                    >
-                        <ArrowLeft className="w-4 h-4" aria-hidden="true" />
-                        <span>Back to Map</span>
-                    </Link>
                 </div>
             </header>
 
