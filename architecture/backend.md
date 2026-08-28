@@ -53,9 +53,6 @@ We have created the preliminary serializers in `backend/navigation/serializers.p
 - `CoordinateSerializer`: Validates latitude (`lat` between -90 and 90) and longitude (`lng` between -180 and 180).
 - `RoutePreviewRequestSerializer`: Maps `origin`, `destination`, and `profile` fields.
 
-> [!IMPORTANT]
-> **Audit Note**: The `profile` field in `RoutePreviewRequestSerializer` is configured with `default=['foot-walking']`, which is a list instead of a string. This needs to be corrected to `default='foot-walking'` to ensure the field returns a clean string value upon deserialization.
-
 ### 2. Service Layer (to be built)
 
 To avoid thick views and tight coupling, external API calls are directed into a dedicated service layer:
