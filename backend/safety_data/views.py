@@ -1,4 +1,3 @@
-from rest_framework import status
 from rest_framework import viewsets, permissions
 from safety_data.models import IncidentReport, SafetySignal
 from safety_data.serializers import IncidentReportSerializer, SafetySignalSerializer
@@ -7,7 +6,6 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
 from safety_data.ai_service import get_travel_advisory
-from django.db.models import Q
 
 class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetySignalSerializer

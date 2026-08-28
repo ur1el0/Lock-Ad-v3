@@ -5,6 +5,9 @@ from rest_framework.response import Response
 
 from navigation.serializers import RoutePreviewRequestSerializer
 from navigation.services import get_route_preview, RoutingConfigurationError, RoutingProviderError
+from rest_framework import viewsets, permissions
+from .models import SavedRoute
+from .serializers import SavedRouteSerializer
 
 
 @api_view(["POST"])
@@ -32,16 +35,32 @@ def route_preview_view(request):
             status=status.HTTP_502_BAD_GATEWAY
         )
 
-from rest_framework import viewsets
-from .models import SavedRoute
-from .serializers import SavedRouteSerializer
 
 class SavedRouteViewSet(viewsets.ModelViewSet):
     serializer_class = SavedRouteSerializer
-    permission_classes = [IsAuthenticated]
+    
+    def get_permissions(self):
+        """
+        Require IsAdminUser for destructive actions.
+        Standard users can only list, retrieve, or create.
+        """
+
+        if self.action in ['update', 'partial_update', 'destroy']:
+            permission_classes = [permissions.IsAdminUser]
+        else:
+            permission_classes = [permissions.IsAuthenticated]
+        return [permission() for permission in permission_classes]
 
     def get_queryset(self):
-        return SavedRoute.objects.filter(user=self.request.user)
+        """
+        QuerySet Isolation:
+        Moderators see all routes. Users only their own.
+        """
+
+        user = self.request.user
+        if user.is_staff:
+            return SavedRoute.objects.all().order_by('-created_at')
+        return SavedRoute.objects.filter(user=user).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
