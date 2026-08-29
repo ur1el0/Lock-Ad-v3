@@ -4,6 +4,7 @@ from django.contrib.auth.models import User
 from rest_framework import status
 from rest_framework.test import APITestCase
 from navigation.services import RoutingConfigurationError, RoutingProviderError
+from .models import SavedRoute
 
 
 class RoutePreviewTests(APITestCase):
@@ -65,5 +66,58 @@ class RoutePreviewTests(APITestCase):
         response = self.client.post(self.url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
         
+class SavedRouteSecurityTests(APITestCase):
+    def setUp(self):
+        # 1. Create standard users and a moderator
+        self.user_a = User.objects.create_user(username='usera', password='password123')
+        self.user_b = User.objects.create_user(username='userb', password='password123')
+        self.admin = User.objects.create_superuser(username='admin', password='password123')
         
+        # 2. Create a route owned exclusively by User A
+        self.route_a = SavedRoute.objects.create(
+            user=self.user_a,
+            name="Work Commute",
+            origin_lat=14.5995, origin_lng=120.9842,
+            dest_lat=14.6091, dest_lng=121.0223
+        )
         
+        # Assuming your router registers this under 'saved-routes'
+        self.url = '/api/navigation/saved-routes/'
+    
+    def test_queryset_isolation_prevents_data_leakage(self):
+        """Test ADR-002: Users should only see their own routes."""
+        self.client.force_authenticate(user=self.user_b)
+        response = self.client.get(self.url)
+        
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        
+        # We check both standard response and paginated response formats
+        data = response.data.get('results', response.data) if isinstance(response.data, dict) else response.data
+        
+        # User B has no routes, so the list should be strictly empty (0)
+        self.assertEqual(len(data), 0) 
+        
+        self.client.force_authenticate(user=self.user_a)
+        response_a = self.client.get(self.url)
+        data_a = response_a.data.get('results', response_a.data) if isinstance(response_a.data, dict) else response_a.data
+        
+        # User A should successfully see their 1 route
+        self.assertEqual(len(data_a), 1)
+
+    def test_rbac_prevents_destructive_actions(self):
+        """Test ADR-002: Only IsAdminUser can execute DELETE."""
+        detail_url = f"{self.url}{self.route_a.id}/"
+        
+        # User A tries to delete their OWN route
+        self.client.force_authenticate(user=self.user_a)
+        response = self.client.delete(detail_url)
+        
+        # Blocked by the ViewSet's `IsAdminUser` permission guard
+        self.assertEqual(response.status_code, status.HTTP_403_FORBIDDEN)
+        
+        # Admin attempts the same deletion
+        self.client.force_authenticate(user=self.admin)
+        admin_response = self.client.delete(detail_url)
+        
+        # Admin is allowed to delete
+        self.assertEqual(admin_response.status_code, status.HTTP_204_NO_CONTENT)
