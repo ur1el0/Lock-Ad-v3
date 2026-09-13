@@ -36,6 +36,8 @@ class IncidentReport(models.Model):
     user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
     incident_type = models.CharField(max_length=20, choices=INCIDENT_TYPES)
     description = models.TextField(blank=True, null=True)
+    image = models.ImageField(upload_to='incident_images/', null=True, blank=True)
+    ai_analysis = models.TextField(blank=True, null=True)
     latitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
     longitude = models.DecimalField(max_digits=12, decimal_places=9, db_index=True)
     status = models.CharField(max_length=20, choices=REPORT_STATUS, default='PENDING', db_index=True)
