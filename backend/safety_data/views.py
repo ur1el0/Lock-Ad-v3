@@ -5,7 +5,7 @@ import requests
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
-from safety_data.ai_service import get_travel_advisory
+from safety_data.ai_service import get_travel_advisory, analyze_incident_image
 
 class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetySignalSerializer
@@ -63,10 +63,18 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Explicitly override client payload to force safe default states
-        serializer.save(
+        report = serializer.save(
             user=self.request.user,
             status='PENDING'
         )
+        if report.image:
+            analysis = analyze_incident_image(
+                report.image,
+                report.incident_type,
+                report.description or ''
+            )
+            report.ai_analysis = analysis
+            report.save(update_fields=[ai_analysis])
 
 @api_view(['GET'])
 @permission_classes([AllowAny])
