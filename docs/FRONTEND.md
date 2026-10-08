@@ -26,7 +26,7 @@ http://localhost:5173
 Run the backend separately at:
 
 ```txt
-http://127.0.0.1:8000
+http://127.0.0.1:8004
 ```
 
 Use the frontend URL for browser testing.
@@ -51,8 +51,10 @@ Vite proxies:
 to:
 
 ```txt
-http://127.0.0.1:8000
+http://127.0.0.1:8004
 ```
+
+The development server also proxies `/ws` to the backend WebSocket endpoint.
 
 Frontend code should call relative API paths:
 
