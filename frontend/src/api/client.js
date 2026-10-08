@@ -20,10 +20,18 @@ export async function client(path, options = {}) {
     };
 
     if (body !== undefined && body !== null) {
-        config.headers['Content-Type'] = 'application/json';
-        config.body = typeof body === 'object' 
-        ? JSON.stringify(body) 
-        : body;
+        const isFormData = typeof FormData !== 'undefined' && body instanceof FormData;
+        if (isFormData) {
+            config.body = body;
+            for (const headerName of Object.keys(config.headers)) {
+                if (headerName.toLowerCase() === 'content-type') {
+                    delete config.headers[headerName];
+                }
+            }
+        } else {
+            config.headers['Content-Type'] = 'application/json';
+            config.body = typeof body === 'object' ? JSON.stringify(body) : body;
+        }
     }
 
     const response = await fetch(path, config);

@@ -1,4 +1,4 @@
-import { Route, Routes } from 'react-router-dom'
+import { Navigate, Route, Routes } from 'react-router-dom'
 import { LoginPage } from './pages/LoginPage'
 import { RegisterPage } from './pages/RegisterPage'
 import { RequireAuth } from './components/RequireAuth'
@@ -8,6 +8,7 @@ import { RoutePlannerPage } from './pages/RoutePlanner' // Make sure this matche
 import { EmergencyContactsPage } from './pages/EmergencyContactsPage'
 import { ModeratorDashboard } from './pages/ModeratorDashboard'
 import { BottomNav } from './components/BottomNav'
+import { useAuth } from './hooks/useAuth'
 
 // 1. Create a reusable layout for all authenticated screens
 function AuthLayout({ children }) {
@@ -25,6 +26,20 @@ function AuthLayout({ children }) {
   )
 }
 
+function RequireStaff({ children }) {
+  const { user, isLoading } = useAuth()
+
+  if (isLoading) {
+    return <p role="status">Loading account...</p>
+  }
+
+  if (!user?.is_staff) {
+    return <Navigate to="/" replace />
+  }
+
+  return children
+}
+
 function App() {
   return (
     <Routes>
@@ -35,7 +50,7 @@ function App() {
       
       <Route path="/contacts" element={<AuthLayout><EmergencyContactsPage /></AuthLayout>} />
       
-      <Route path="/moderator" element={<AuthLayout><ModeratorDashboard /></AuthLayout>} />
+      <Route path="/moderator" element={<AuthLayout><RequireStaff><ModeratorDashboard /></RequireStaff></AuthLayout>} />
 
       {/* --- Public / Guest Flow --- */}
       <Route path="/login" element={<GuestOnlyRoute><LoginPage /></GuestOnlyRoute>} />
