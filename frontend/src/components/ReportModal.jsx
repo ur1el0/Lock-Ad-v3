@@ -12,6 +12,7 @@ const INCIDENT_TYPES = [
 export function ReportModal({ lat, lng, onClose, onSuccess }) {
     const [incidentType, setIncidentType] = useState('HAZARD');
     const [description, setDescription] = useState('');
+    const [imageFile, setImageFile] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     const [error, setError] = useState(null);
 
@@ -20,12 +21,15 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
         setIsSubmitting(true);
         setError(null);
         try {
-            await createIncident({
-                incident_type: incidentType,
-                description,
-                latitude: lat.toFixed(9),
-                longitude: lng.toFixed(9)
-            });
+            const reportData = new FormData();
+            reportData.append('incident_type', incidentType);
+            reportData.append('description', description);
+            reportData.append('latitude', lat.toFixed(9));
+            reportData.append('longitude', lng.toFixed(9));
+            if (imageFile) {
+                reportData.append('image', imageFile);
+            }
+            await createIncident(reportData);
             onSuccess();
         } catch (err) {
             setError(err.message || 'Failed to submit report. Ensure you are logged in.');
@@ -35,8 +39,8 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
     };
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-center p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
-            <div className="bg-background border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col gap-5 animate-in zoom-in-95 duration-200">
+        <div className="fixed inset-0 overflow-y-auto bg-black/60 backdrop-blur-sm z-[9999] flex justify-center items-start sm:items-center p-4 animate-in fade-in duration-200" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+            <div className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto bg-background border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col gap-5 animate-in zoom-in-95 duration-200">
                 
                 <div className="border-b border-border pb-3">
                     <h2 id="modal-title" className="m-0 text-xl font-extrabold text-foreground tracking-tight">Report Incident</h2>
@@ -46,7 +50,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                 </div>
                 
                 {error && (
-                    <div className="bg-destructive/10 border border-destructive/20 text-destructive text-sm font-semibold p-3 rounded-xl animate-in slide-in-from-top-2">
+                    <div role="alert" className="bg-destructive/10 border border-destructive/20 text-destructive text-sm font-semibold p-3 rounded-xl animate-in slide-in-from-top-2">
                         {error}
                     </div>
                 )}
@@ -91,6 +95,34 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                             placeholder="Add any helpful details..."
                             className="w-full bg-muted border border-input text-foreground text-sm font-medium rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none resize-none placeholder:text-muted-foreground/60"
                         />
+                    </div>
+
+                    <div className="flex flex-col gap-1.5">
+                        <label htmlFor="incident-image" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+                            Photo (Optional)
+                        </label>
+                        <input
+                            id="incident-image"
+                            type="file"
+                            accept="image/jpeg,image/png,image/webp"
+                            onChange={event => {
+                                const selectedFile = event.target.files?.[0] || null;
+                                if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
+                                    setImageFile(null);
+                                    setError('Photo must be 5 MB or smaller.');
+                                    event.target.value = '';
+                                    return;
+                                }
+                                setError(null);
+                                setImageFile(selectedFile);
+                            }}
+                            disabled={isSubmitting}
+                            aria-describedby="incident-image-help"
+                            className="w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-xs file:font-bold file:text-secondary-foreground"
+                        />
+                        <p id="incident-image-help" className="text-xs text-muted-foreground m-0">
+                            JPEG, PNG, or WebP up to 5 MB. If you attach a photo, the photo and report description are sent to Google Gemini for an AI-generated review aid. A moderator makes the decision.
+                        </p>
                     </div>
 
                     <div className="flex justify-end gap-3 mt-1 pt-4 border-t border-border">

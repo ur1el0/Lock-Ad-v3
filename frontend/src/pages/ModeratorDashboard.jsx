@@ -1,8 +1,7 @@
+import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
-import { Link } from "react-router-dom";
 import { getAllIncidentReports, updateIncidentReport } from "../api/safety";
 import {
-    ArrowLeft,
     CheckCircle2,
     XCircle,
     ShieldAlert,
@@ -16,6 +15,20 @@ import {
 
 export function ModeratorDashboard() {
     const { data, error, isLoading, mutate } = useSWR('/api/safety/incidents/', getAllIncidentReports);
+    const [selectedImage, setSelectedImage] = useState(null);
+    const [isImageZoomed, setIsImageZoomed] = useState(false);
+    const imageDialogRef = useRef(null);
+
+    useEffect(() => {
+        const dialog = imageDialogRef.current;
+        if (!dialog) return;
+
+        if (selectedImage && !dialog.open) {
+            dialog.showModal();
+        } else if (!selectedImage && dialog.open) {
+            dialog.close();
+        }
+    }, [selectedImage]);
 
     const reports = data?.results || data || [];
     const loading = isLoading;
@@ -136,6 +149,45 @@ export function ModeratorDashboard() {
                                         )}
                                     </p>
 
+                                    {report.image && (
+                                        <button
+                                            type="button"
+                                            onClick={() => {
+                                                setIsImageZoomed(false);
+                                                setSelectedImage(report);
+                                            }}
+                                            className="w-full text-left rounded-xl border border-border overflow-hidden focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                                            aria-label={`View photo for incident report ${report.id}`}
+                                        >
+                                            <img
+                                                src={report.image}
+                                                alt={`Photo attached to incident report ${report.id}`}
+                                                loading="lazy"
+                                                className="w-full h-36 object-cover"
+                                            />
+                                            <span className="block px-3 py-2 text-xs font-semibold text-foreground">
+                                                View attached photo
+                                            </span>
+                                        </button>
+                                    )}
+
+                                    {report.ai_analysis && (
+                                        <section
+                                            aria-label="AI-generated moderator review aid"
+                                            className="rounded-xl border border-border bg-muted/40 p-3"
+                                        >
+                                            <h4 className="m-0 text-xs font-bold text-foreground">
+                                                AI-generated review aid
+                                            </h4>
+                                            <p className="m-0 mt-1 text-[11px] text-muted-foreground">
+                                                May be inaccurate. Review the photo and report yourself.
+                                            </p>
+                                            <p className="m-0 mt-2 text-sm text-foreground/90">
+                                                {report.ai_analysis}
+                                            </p>
+                                        </section>
+                                    )}
+
                                     {/* Location & Timestamp Metadata */}
                                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/60">
                                         <div className="flex items-center gap-1 font-mono">
@@ -182,6 +234,54 @@ export function ModeratorDashboard() {
                     </div>
                 )}
             </main>
+
+            <dialog
+                ref={imageDialogRef}
+                aria-labelledby="incident-image-dialog-title"
+                onCancel={() => setSelectedImage(null)}
+                onClose={() => setSelectedImage(null)}
+                className="m-auto w-[calc(100vw-2rem)] max-w-4xl max-h-[90vh] overflow-auto rounded-2xl border border-border bg-background p-4 text-foreground shadow-2xl backdrop:bg-black/70"
+            >
+                {selectedImage && (
+                    <div className="space-y-3">
+                        <header className="flex items-start justify-between gap-4">
+                            <div>
+                                <h2 id="incident-image-dialog-title" className="m-0 text-base font-bold">
+                                    Report #{selectedImage.id} photo
+                                </h2>
+                                <p className="m-0 mt-1 text-xs text-muted-foreground">
+                                    AI output is only a review aid; make the moderation decision from the evidence.
+                                </p>
+                            </div>
+                            <button
+                                type="button"
+                                autoFocus
+                                onClick={() => setSelectedImage(null)}
+                                className="rounded-lg border border-border px-3 py-2 text-sm font-semibold hover:bg-muted focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                            >
+                                Close
+                            </button>
+                        </header>
+                        <button
+                            type="button"
+                            aria-pressed={isImageZoomed}
+                            onClick={() => setIsImageZoomed(zoomed => !zoomed)}
+                            className="block max-w-full overflow-auto rounded-xl focus-visible:outline focus-visible:outline-2 focus-visible:outline-ring"
+                        >
+                            <img
+                                src={selectedImage.image}
+                                alt={`Full-size photo attached to incident report ${selectedImage.id}`}
+                                className={isImageZoomed
+                                    ? "max-w-none cursor-zoom-out"
+                                    : "mx-auto max-h-[70vh] max-w-full cursor-zoom-in object-contain"}
+                            />
+                            <span className="sr-only">
+                                {isImageZoomed ? "Zoom out" : "Zoom in"} photo
+                            </span>
+                        </button>
+                    </div>
+                )}
+            </dialog>
         </div>
     );
 }

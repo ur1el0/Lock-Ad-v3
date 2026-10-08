@@ -282,10 +282,8 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
 
     // WebSocket for Real-Time Incidents
     useEffect(() => {
-        // Use ws:// for local dev. In production with HTTPS, use wss://
         const wsProtocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
-        // Assuming the backend runs on localhost:8004
-        const wsUrl = `${wsProtocol}//localhost:8004/ws/incidents/`
+        const wsUrl = `${wsProtocol}//${window.location.host}/ws/incidents/`
 
         const socket = new WebSocket(wsUrl)
 

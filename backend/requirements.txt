@@ -37,3 +37,4 @@ gunicorn>=21.2.0
 django-cors-headers
 django-redis
 Pillow>=10.0.0
+google-genai>=1.0.0,<2.0.0
