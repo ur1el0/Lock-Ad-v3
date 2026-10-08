@@ -17,10 +17,12 @@ Backend:
 
 ```bash
 cd backend
+python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
+test -f .env || cp .env.example .env
 python3 manage.py migrate
-python3 manage.py runserver
+python3 manage.py runserver 8004
 ```
 
 Frontend:
@@ -35,5 +37,5 @@ Use:
 
 ```txt
 Frontend: http://localhost:5173
-Backend:  http://127.0.0.1:8000
+Backend:  http://127.0.0.1:8004
 ```

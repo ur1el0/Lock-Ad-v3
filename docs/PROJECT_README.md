@@ -469,7 +469,7 @@ cd backend
 source venv/bin/activate
 pip install -r requirements.txt
 python3 manage.py migrate
-python3 manage.py runserver
+python3 manage.py runserver 8004
 ```
 
 Backend checks:
