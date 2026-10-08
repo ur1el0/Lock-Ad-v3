@@ -1,6 +1,12 @@
 import math
 from safety_data.models import SafetySignal, IncidentReport
 
+
+ROUTE_DATA_BUFFER_DEGREES = 0.005
+SIGNAL_ROUTE_DISTANCE_METERS = 50
+INCIDENT_ROUTE_DISTANCE_METERS = 100
+
+
 def haversine_distance(lat1, lon1, lat2, lon2):
     """
     Calculate the great circle distance in meters between two points 
@@ -17,14 +23,68 @@ def haversine_distance(lat1, lon1, lat2, lon2):
     r = 6371000 # Radius of earth in meters
     return c * r
 
+
+def route_bounding_box(route_coords, buffer_degrees=ROUTE_DATA_BUFFER_DEGREES):
+    """Return a buffered (min_lng, max_lng, min_lat, max_lat) route box."""
+    if not route_coords:
+        return None
+
+    longitudes = [float(point[0]) for point in route_coords]
+    latitudes = [float(point[1]) for point in route_coords]
+    return (
+        min(longitudes) - buffer_degrees,
+        max(longitudes) + buffer_degrees,
+        min(latitudes) - buffer_degrees,
+        max(latitudes) + buffer_degrees,
+    )
+
+
 def is_point_near_route(point_lat, point_lon, route_coords, threshold=50):
     """
-    Checks if a given coordinate is within `threshold` meters of ANY point 
-    along the route's coordinate path.
+    Check distance to route segments, including positions between GeoJSON vertices.
+
+    A local equirectangular projection is accurate enough for this app's
+    neighborhood-scale routes and avoids treating sparse vertices as the route.
     """
-    for lon, lat in route_coords:
-        if haversine_distance(point_lat, point_lon, lat, lon) <= threshold:
+    if not route_coords:
+        return False
+
+    point_lat = float(point_lat)
+    point_lon = float(point_lon)
+    meters_per_degree_lat = 111_320
+    meters_per_degree_lon = meters_per_degree_lat * math.cos(math.radians(point_lat))
+    projected = [
+        (
+            (float(lon) - point_lon) * meters_per_degree_lon,
+            (float(lat) - point_lat) * meters_per_degree_lat,
+        )
+        for lon, lat in route_coords
+    ]
+
+    if len(projected) == 1 and math.hypot(*projected[0]) <= threshold:
+        return True
+
+    for start, end in zip(projected, projected[1:]):
+        segment_x = end[0] - start[0]
+        segment_y = end[1] - start[1]
+        segment_length_squared = segment_x ** 2 + segment_y ** 2
+        if segment_length_squared == 0:
+            nearest_x, nearest_y = start
+        else:
+            projection = max(
+                0,
+                min(
+                    1,
+                    -(start[0] * segment_x + start[1] * segment_y)
+                    / segment_length_squared,
+                ),
+            )
+            nearest_x = start[0] + projection * segment_x
+            nearest_y = start[1] + projection * segment_y
+
+        if math.hypot(nearest_x, nearest_y) <= threshold:
             return True
+
     return False
 
 def calculate_route_score(geometry):
@@ -37,17 +97,7 @@ def calculate_route_score(geometry):
         return {"score": 70, "advisories": ["No geometry provided to calculate score."]}
 
     # 1. Calculate bounding box of the route to filter database queries
-    min_lng = min([c[0] for c in coordinates])
-    max_lng = max([c[0] for c in coordinates])
-    min_lat = min([c[1] for c in coordinates])
-    max_lat = max([c[1] for c in coordinates])
-
-    # Add a ~500m buffer (0.005 degrees) to the bounding box
-    buffer = 0.005
-    min_lat -= buffer
-    max_lat += buffer
-    min_lng -= buffer
-    max_lng += buffer
+    min_lng, max_lng, min_lat, max_lat = route_bounding_box(coordinates)
 
     # 2. Fetch nearby Safety Signals and Incidents
     nearby_signals = SafetySignal.objects.filter(
@@ -56,7 +106,7 @@ def calculate_route_score(geometry):
     )
     
     nearby_incidents = IncidentReport.objects.filter(
-        status__in=['PENDING', 'VERIFIED'],
+        status='APPROVED',
         latitude__gte=min_lat, latitude__lte=max_lat,
         longitude__gte=min_lng, longitude__lte=max_lng
     )
@@ -77,7 +127,12 @@ def calculate_route_score(geometry):
 
     # Evaluate signals
     for signal in nearby_signals:
-        if is_point_near_route(signal.latitude, signal.longitude, coordinates, threshold=50):
+        if is_point_near_route(
+            signal.latitude,
+            signal.longitude,
+            coordinates,
+            threshold=SIGNAL_ROUTE_DISTANCE_METERS,
+        ):
             counts[signal.signal_type] += 1
             if signal.signal_type == 'CCTV':
                 score += 5
@@ -91,7 +146,12 @@ def calculate_route_score(geometry):
     # Evaluate active incidents
     for incident in nearby_incidents:
         # Check within 100 meters for incidents (a slightly wider radius for warnings)
-        if is_point_near_route(incident.latitude, incident.longitude, coordinates, threshold=100):
+        if is_point_near_route(
+            incident.latitude,
+            incident.longitude,
+            coordinates,
+            threshold=INCIDENT_ROUTE_DISTANCE_METERS,
+        ):
             counts['INCIDENT'] += 1
             score -= 15
 
@@ -109,7 +169,9 @@ def calculate_route_score(geometry):
         advisories.append(f"Passes near {counts['MEDICAL']} medical facilities.")
     
     if counts['INCIDENT'] > 0:
-        advisories.append(f"WARNING: Route passes within 100m of {counts['INCIDENT']} reported hazards/incidents.")
+        advisories.append(
+            f"WARNING: Route passes within 100m of {counts['INCIDENT']} moderator-approved incident reports."
+        )
         
     if score == baseline_score and not advisories:
         advisories.append("Route has no known safety signals or incidents nearby.")
