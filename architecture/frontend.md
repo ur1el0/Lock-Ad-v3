@@ -10,7 +10,7 @@ The frontend of Lock-Ad v3 is a modern React application built and bundled using
 
 The frontend lives in `/frontend` and utilizes **Vite** for the development environment and bundle builds.
 
-- **Proxy Configuration**: To bypass Cross-Origin Resource Sharing (CORS) limits during local development, `vite.config.js` is configured to proxy all traffic starting with `/api` to the backend server at `http://127.0.0.1:8000`.
+- **Proxy Configuration**: During local development, `vite.config.js` proxies `/api` requests and `/ws` WebSockets to the backend at `http://127.0.0.1:8004`.
 - **Relative Pathing**: All frontend requests use clean, relative URIs (e.g. `/api/auth/login/`) instead of hardcoding absolute domains.
 
 ### 2. State & Authentication Context
@@ -41,24 +41,15 @@ graph TD
     GateB -->|No| RenderAuth[Render Target View]
 ```
 
-- **`RequireAuth`**: Inspects `isAuthenticated` from `useAuth()`. If the session is invalid or loading, it locks access and routes to `/login`. Used for the root homepage (`/`).
+- **`RequireAuth`**: Inspects `isAuthenticated` from `useAuth()`. If the session is invalid or loading, it locks access and routes to `/login`. Used for authenticated routes.
 - **`GuestOnlyRoute`**: Blocks authenticated users from returning to login/registration fields. Used for `/login` and `/register`.
+- The moderator route also checks `user.is_staff` in the UI; API permissions remain enforced by Django.
 
 ### 4. Interactive Pages
 
 - `LoginPage`: Renders credentials inputs, manages local forms state, submits to `login()` of `useAuth()`, and handles API credentials errors.
 - `RegisterPage`: Handles form validation (matching password, non-empty usernames) and registration logic.
-
----
-
-## Planned Frontend Modules
-
-### 1. Map Interface Component
-
-- Integration of a responsive web mapping library (such as Leaflet or Mapbox).
-- Dynamic rendering of coordinates returned from the backend `/api/navigation/routes/preview/` endpoint.
-
-### 2. Route Control Forms
-
-- Origin/Destination entry fields (using geocoding services to resolve search terms to coordinate points).
-- Detailed visualization panel for routing statistics (distance in kilometers/meters, walking duration in minutes, and hazard alerts).
+- `RoutePlanner`: Route request UI, map display, route summary, and safety-related context.
+- `EmergencyContactsPage`: Emergency contact management.
+- `ModeratorDashboard`: Staff-only report review, image preview, and status actions.
+- `Map`: Leaflet map for route and safety layers, incident filters, report submission, and live approved-incident updates.
