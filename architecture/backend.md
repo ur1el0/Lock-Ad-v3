@@ -1,6 +1,6 @@
 # Backend Architecture
 
-The backend of Lock-Ad v3 is powered by **Django** and **Django REST Framework (DRF)**. It enforces security guidelines, wraps external routing engines, and is designed to scale from SQLite locally to PostgreSQL in production.
+The backend of Lock-Ad v3 uses **Django**, **Django REST Framework (DRF)**, and **Django Channels**. It exposes the API, validates input, enforces server-side permissions, and contains integrations with routing and AI providers. Local development can use SQLite; Docker Compose runs PostgreSQL and Redis.
 
 ---
 
@@ -12,8 +12,9 @@ The project config is located under `backend/backend/`. Currently, the settings 
 
 - `core`: Shared core utility configurations and health checks.
 - `accounts`: Complete user registration, login, logout, and session me-details.
-- `navigation`: Route generation logic, serializers, and routing integrations.
-- `safety` (planned): Public datasets ingestor, user community reporting, and route scoring module.
+- `navigation`: Route request validation, OpenRouteService integration, saved routes, and route scoring.
+- `safety_data`: Incident reports, safety signals, image review, and authenticated incident WebSockets.
+- `emergency`: User-owned emergency contacts.
 
 ### 2. Session Authentication & CSRF Protection
 
@@ -34,32 +35,17 @@ Lock-Ad v3 utilizes Django's session authentication instead of stateless JWTs. T
 - `UserSerializer`: Serializes Django `User` model attributes (`id`, `username`, `email`).
 - `RegisterSerializer`: Validates registration rules (valid username, email format, password constraints) and creates the user model records securely using `create_user`.
 
-### 4. Code Coverage
+### 4. Tests
 
-The `accounts` app contains automated unit tests verifying the registration, invalid login, valid login, logout, and current user session flows. Run these test suites using:
+App tests use Django `TestCase` and DRF `APITestCase`. Run them from `backend/` using:
 ```bash
-../venv/bin/python manage.py test
+python manage.py test
 ```
 
----
+## Routing and safety data flow
 
-## Planned/Under-Construction Backend Modules
+`POST /api/navigation/routes/preview/` validates origin, destination, and the supported `foot-walking` profile with `RoutePreviewRequestSerializer`. `navigation/services.py` requests route geometry from OpenRouteService, considers moderator-approved incidents near the initial route for avoidance, and delegates the final route score to `navigation/scoring.py`.
 
-The focus is currently on the `navigation` app.
+Incident and signal endpoints are routed through `safety_data/urls.py`. Serializers validate and shape their data; viewsets enforce permissions and queryset visibility. Image-backed reports are analyzed through `safety_data/ai_service.py`, and moderation status changes may be broadcast by `safety_data/signals.py` to authenticated Channels consumers.
 
-### 1. Route Preview Request Validation
-
-We have created the preliminary serializers in `backend/navigation/serializers.py`:
-- `CoordinateSerializer`: Validates latitude (`lat` between -90 and 90) and longitude (`lng` between -180 and 180).
-- `RoutePreviewRequestSerializer`: Maps `origin`, `destination`, and `profile` fields.
-
-### 2. Service Layer (to be built)
-
-To avoid thick views and tight coupling, external API calls are directed into a dedicated service layer:
-- File: `backend/navigation/services.py` (currently empty).
-- Responsibility: Call OpenRouteService (ORS) using the API key stored in the environment variables, parsing JSON geometries, distance, and duration safely.
-
-### 3. Route Views & Routes (to be built)
-
-- Endpoint: `POST /api/navigation/routes/preview/`
-- Views: Will parse coordinates, invoke `services.py` methods, format the response, and return routing context.
+Provider API keys belong in environment configuration. Keep provider calls in their service modules, return sanitized client errors, and keep session authentication plus CSRF protection for unsafe browser requests.
