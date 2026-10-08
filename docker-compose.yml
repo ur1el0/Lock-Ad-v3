@@ -41,7 +41,7 @@ services:
       POSTGRES_PORT: 5432
       REDIS_HOST: redis
     ports:
-      - "8004:8000"
+      - "127.0.0.1:8004:8000"
     volumes:
       - incident_media:/app/media
     depends_on:
