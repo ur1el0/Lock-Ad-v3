@@ -15,7 +15,7 @@ export function RoutePlannerPage() {
         destLat, setDestLat, 
         destLng, setDestLng,
         routeStats, setRouteStats,
-        routeGeometry, setRouteGeometry,
+        setRouteGeometry,
         aiAdvisory, setAiAdvisory
     } = useRoute();
 
@@ -26,8 +26,12 @@ export function RoutePlannerPage() {
     
     const [savedRoutes, setSavedRoutes] = useState([]);
     const [savingRoute, setSavingRoute] = useState(false);
-    const [weather, setWeather] = useState(null);
+    const [weatherSnapshot, setWeatherSnapshot] = useState(null);
     const [fetchingAi, setFetchingAi] = useState(false);
+    const originKey = originLat && originLng ? `${originLat},${originLng}` : null;
+    const weather = weatherSnapshot?.originKey === originKey
+        ? weatherSnapshot.data
+        : null;
 
     useEffect(() => {
         getSavedRoutes().then(setSavedRoutes).catch(err => console.error("Failed to fetch saved routes", err));
@@ -35,18 +39,17 @@ export function RoutePlannerPage() {
 
     // Weather fetch based on origin
     useEffect(() => {
-        if (originLat && originLng) {
-            getWeather(originLat, originLng)
-                .then(data => setWeather(data))
-                .catch(err => console.error("Failed to fetch weather", err));
-        } else {
-            setWeather(null);
-        }
+        if (!originLat || !originLng) return;
+
+        const requestedOriginKey = `${originLat},${originLng}`;
+        getWeather(originLat, originLng)
+            .then(data => setWeatherSnapshot({ originKey: requestedOriginKey, data }))
+            .catch(err => console.error("Failed to fetch weather", err));
     }, [originLat, originLng]);
 
     const handleUseCurrentLocation = () => {
         if (!navigator.geolocation) {
-            setError("Geolocation is not supported by your browser");
+            setError("Location access isn’t available in this browser. Enter the starting coordinates instead.");
             return;
         }
         setLocationLoading(true);
@@ -57,7 +60,7 @@ export function RoutePlannerPage() {
                 setLocationLoading(false);
             },
             () => {
-                setError("Unable to retrieve your location");
+                setError("We couldn’t get your location. Check your browser’s location settings and try again.");
                 setLocationLoading(false);
             }
         );
@@ -84,10 +87,10 @@ export function RoutePlannerPage() {
                 dest_lng: parseFloat(destLng)
             });
             setSavedRoutes([newRoute, ...savedRoutes]);
-            alert("Route saved successfully!");
+            alert("Route saved.");
         } catch (e) {
             console.error(e);
-            alert("Failed to save route. Please try again.");
+            alert("We couldn’t save this route. Try again.");
         } finally {
             setSavingRoute(false);
         }
@@ -118,7 +121,7 @@ export function RoutePlannerPage() {
             if (error instanceof APIError) {
                 setError(error.message);
             } else {
-                setError('Failed to fetch route preview. Check your connection.');
+                setError('We couldn’t load a route preview. Check your connection and try again.');
             }
         } finally {
             setLoading(false);
@@ -144,7 +147,7 @@ export function RoutePlannerPage() {
             setAiAdvisory(result);
         } catch (error) {
             console.error(error);
-            alert("Failed to get AI advisory");
+            alert("We couldn’t load the safety advisory. Try again in a moment.");
         } finally {
             setFetchingAi(false);
         }
@@ -164,15 +167,15 @@ export function RoutePlannerPage() {
             <div className="max-w-md mx-auto space-y-6">
                 
                 <header>
-                    <h1 className="text-2xl font-black text-foreground m-0">Plan Route</h1>
-                    <p className="text-sm text-muted-foreground mt-1">Configure your destination and check safety advisories.</p>
+                    <h1 className="text-2xl font-black text-foreground m-0">Plan a route</h1>
+                    <p className="text-sm text-muted-foreground mt-1">Enter starting and destination coordinates to preview a route and available safety advisories.</p>
                 </header>
 
                 {/* Weather Widget */}
                 {weather && (
                     <div className="bg-card border border-border p-4 rounded-2xl flex items-center justify-between shadow-sm">
                         <div className="flex flex-col">
-                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current Weather</span>
+                            <span className="text-xs font-bold text-muted-foreground uppercase tracking-wider">Current weather</span>
                             <span className="text-lg font-bold text-foreground capitalize mt-0.5">{weather.condition}</span>
                         </div>
                         <div className="flex items-center gap-3">
@@ -188,27 +191,28 @@ export function RoutePlannerPage() {
                 <form onSubmit={handleFetchRoute} className="bg-card border border-border p-5 rounded-3xl shadow-sm flex flex-col gap-5">
                     
                     {error && (
-                        <div className="bg-destructive/10 text-destructive text-sm font-bold p-3 rounded-xl flex items-center gap-2">
-                            <AlertTriangle className="w-4 h-4" /> {error}
+                        <div role="alert" className="bg-destructive/10 text-destructive text-sm font-bold p-3 rounded-xl flex items-center gap-2">
+                            <AlertTriangle className="w-4 h-4" aria-hidden="true" /> {error}
                         </div>
                     )}
 
                     <div className="flex flex-col gap-1.5">
                         <div className="flex items-center justify-between">
-                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Origin</label>
+                            <label className="text-xs font-bold uppercase tracking-wider text-muted-foreground ml-1">Starting point</label>
                             <button 
                                 type="button" 
                                 onClick={handleUseCurrentLocation}
                                 className="text-xs font-bold text-primary hover:underline flex items-center gap-1"
                                 disabled={locationLoading}
                             >
-                                <MapPin className="w-3 h-3" /> {locationLoading ? 'Locating...' : 'Use Current'}
+                                <MapPin className="w-3 h-3" aria-hidden="true" /> {locationLoading ? 'Finding location…' : 'Use my location'}
                             </button>
                         </div>
                         <div className="grid grid-cols-2 gap-2">
                             <input
                                 type="text"
-                                placeholder="Lat"
+                                placeholder="Latitude"
+                                aria-label="Starting point latitude"
                                 value={originLat}
                                 onChange={(e) => setOriginLat(e.target.value)}
                                 required
@@ -216,7 +220,8 @@ export function RoutePlannerPage() {
                             />
                             <input
                                 type="text"
-                                placeholder="Lng"
+                                placeholder="Longitude"
+                                aria-label="Starting point longitude"
                                 value={originLng}
                                 onChange={(e) => setOriginLng(e.target.value)}
                                 required
@@ -230,7 +235,8 @@ export function RoutePlannerPage() {
                         <div className="grid grid-cols-2 gap-2">
                             <input
                                 type="text"
-                                placeholder="Lat"
+                                placeholder="Latitude"
+                                aria-label="Destination latitude"
                                 value={destLat}
                                 onChange={(e) => setDestLat(e.target.value)}
                                 required
@@ -238,7 +244,8 @@ export function RoutePlannerPage() {
                             />
                             <input
                                 type="text"
-                                placeholder="Lng"
+                                placeholder="Longitude"
+                                aria-label="Destination longitude"
                                 value={destLng}
                                 onChange={(e) => setDestLng(e.target.value)}
                                 required
@@ -252,7 +259,7 @@ export function RoutePlannerPage() {
                         disabled={loading}
                         className="w-full bg-foreground text-background py-3.5 rounded-xl font-bold text-sm shadow-md hover:scale-[1.02] active:scale-95 transition-all disabled:opacity-50"
                     >
-                        {loading ? 'Calculating Route...' : 'Preview Route Options'}
+                        {loading ? 'Calculating route…' : 'Preview route'}
                     </button>
                 </form>
 

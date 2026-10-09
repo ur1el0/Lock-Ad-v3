@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import useSWR from "swr";
 import { getAllIncidentReports, updateIncidentReport } from "../api/safety";
+import { APIError } from "../api/client";
 import {
     CheckCircle2,
     XCircle,
@@ -39,7 +40,9 @@ export function ModeratorDashboard() {
             mutate();
         } catch (err) {
             console.error(err);
-            alert('Failed to update status');
+            alert(err instanceof APIError
+                ? err.message
+                : 'We couldn’t update this report. Try again.');
         }
     }
 
@@ -87,10 +90,10 @@ export function ModeratorDashboard() {
 
             <main className="max-w-6xl mx-auto px-4 md:px-8 pt-6">
                 {error ? (
-                    <div className="bg-card p-8 rounded-3xl border border-border shadow-sm text-center">
+                    <div role="alert" className="bg-card p-8 rounded-3xl border border-border shadow-sm text-center">
                         <XCircle className="w-10 h-10 text-destructive mx-auto mb-3" aria-hidden="true" />
-                        <h2 className="text-lg font-bold text-foreground m-0">Connection Error</h2>
-                        <p className="text-sm text-muted-foreground mt-1">Failed to fetch the latest incident reports.</p>
+                        <h2 className="text-lg font-bold text-foreground m-0">Couldn’t load incident reports</h2>
+                        <p className="text-sm text-muted-foreground mt-1">Reload this page to try again.</p>
                     </div>
                 ) : loading ? (
                     <div className="flex justify-center items-center py-20">
@@ -99,8 +102,8 @@ export function ModeratorDashboard() {
                 ) : reports.length === 0 ? (
                     <div className="bg-card p-10 rounded-3xl border border-border shadow-sm text-center">
                         <CheckCircle2 className="w-10 h-10 text-emerald-500 mx-auto mb-3" aria-hidden="true" />
-                        <h2 className="text-lg font-bold text-foreground m-0">All Caught Up</h2>
-                        <p className="text-sm text-muted-foreground mt-1">There are no pending reports requiring moderation.</p>
+                        <h2 className="text-lg font-bold text-foreground m-0">No reports need review</h2>
+                        <p className="text-sm text-muted-foreground mt-1">There are no pending reports to moderate right now.</p>
                     </div>
                 ) : (
                     <div
