@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { getEmergencyContacts, addEmergencyContact, deleteEmergencyContact } from "../api/emergency";
+import { APIError } from "../api/client";
 import { ShieldAlert, Trash2, UserPlus, Phone, AlertCircle, ShieldCheck } from "lucide-react";
 
 export function EmergencyContactsPage() {
@@ -13,21 +14,28 @@ export function EmergencyContactsPage() {
     const [relationship, setRelationship] = useState('');
     const [submitting, setSubmitting] = useState(false);
 
-    async function fetchContacts() {
-        try {
-            setLoading(true);
-            const data = await getEmergencyContacts();
-            setContacts(data);
-        } catch (err) {
-            console.error(err);
-            setError('Failed to load contacts');
-        } finally {
-            setLoading(false);
-        }
-    }
-
     useEffect(() => {
-        fetchContacts();
+        let active = true;
+
+        getEmergencyContacts()
+            .then(data => {
+                if (active) setContacts(data);
+            })
+            .catch(err => {
+                console.error(err);
+                if (active) {
+                    setError(err instanceof APIError
+                        ? err.message
+                        : 'We couldn’t load your emergency contacts. Check your connection and try again.');
+                }
+            })
+            .finally(() => {
+                if (active) setLoading(false);
+            });
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     async function handleAddContact(e) {
@@ -42,7 +50,9 @@ export function EmergencyContactsPage() {
             setRelationship('');
         } catch (e) {
             console.error(e);
-            setError('Failed to add contact');
+            setError(e instanceof APIError
+                ? e.message
+                : 'We couldn’t add this contact. Check the details and try again.');
         } finally {
             setSubmitting(false);
         }
@@ -55,7 +65,9 @@ export function EmergencyContactsPage() {
             setContacts(contacts.filter(c => c.id !== id));
         } catch (e) {
             console.error(e);
-            alert('Failed to delete contact');
+            alert(e instanceof APIError
+                ? e.message
+                : 'We couldn’t delete this contact. Try again.');
         }
     }
 
@@ -80,7 +92,7 @@ export function EmergencyContactsPage() {
 
             <main className="max-w-2xl mx-auto px-4 md:px-8 pt-6 space-y-6">
                 {error && (
-                    <div className="flex items-center gap-2 p-4 bg-destructive/10 text-destructive text-sm font-bold rounded-2xl border border-destructive/20">
+                    <div role="alert" className="flex items-center gap-2 p-4 bg-destructive/10 text-destructive text-sm font-bold rounded-2xl border border-destructive/20">
                         <AlertCircle className="w-5 h-5 shrink-0" />
                         <p>{error}</p>
                     </div>
@@ -100,7 +112,7 @@ export function EmergencyContactsPage() {
                     ) : contacts.length === 0 ? (
                         <div className="text-center py-8">
                             <UserPlus className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
-                            <p className="text-muted-foreground font-medium">No emergency contacts saved yet.</p>
+                            <p className="text-muted-foreground font-medium">You haven’t added any emergency contacts yet.</p>
                         </div>
                     ) : (
                         <ul className="space-y-3">
@@ -120,7 +132,7 @@ export function EmergencyContactsPage() {
                                     <button 
                                         onClick={() => handleDelete(contact.id)}
                                         className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
-                                        title="Delete contact"
+                                        aria-label={`Delete ${contact.name} from emergency contacts`}
                                     >
                                         <Trash2 className="w-5 h-5" />
                                     </button>
@@ -139,8 +151,9 @@ export function EmergencyContactsPage() {
 
                     <form onSubmit={handleAddContact} className="space-y-4">
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-foreground ml-1">Name</label>
+                            <label htmlFor="contact-name" className="text-xs font-bold text-foreground ml-1">Name</label>
                             <input 
+                                id="contact-name"
                                 type="text" 
                                 required 
                                 value={name} 
@@ -151,8 +164,9 @@ export function EmergencyContactsPage() {
                         </div>
                         
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-foreground ml-1">Phone Number</label>
+                            <label htmlFor="contact-phone" className="text-xs font-bold text-foreground ml-1">Phone number</label>
                             <input 
+                                id="contact-phone"
                                 type="tel" 
                                 required 
                                 value={phoneNumber} 
@@ -163,8 +177,9 @@ export function EmergencyContactsPage() {
                         </div>
 
                         <div className="space-y-1">
-                            <label className="text-xs font-bold text-foreground ml-1">Relationship</label>
+                            <label htmlFor="contact-relationship" className="text-xs font-bold text-foreground ml-1">Relationship</label>
                             <input 
+                                id="contact-relationship"
                                 type="text" 
                                 required 
                                 value={relationship} 

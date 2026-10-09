@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { createIncident } from '../api/safety';
+import { APIError } from '../api/client';
 import { AlertTriangle, ShieldAlert, LightbulbOff, Car } from 'lucide-react';
 
 const INCIDENT_TYPES = [
@@ -32,7 +33,9 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
             await createIncident(reportData);
             onSuccess();
         } catch (err) {
-            setError(err.message || 'Failed to submit report. Ensure you are logged in.');
+            setError(err instanceof APIError
+                ? err.message
+                : 'We couldn’t complete your request. Check your connection and try again.');
         } finally {
             setIsSubmitting(false);
         }
@@ -43,7 +46,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
             <div className="my-auto max-h-[calc(100dvh-2rem)] overflow-y-auto bg-background border border-border p-6 rounded-2xl w-full max-w-sm shadow-2xl flex flex-col gap-5 animate-in zoom-in-95 duration-200">
                 
                 <div className="border-b border-border pb-3">
-                    <h2 id="modal-title" className="m-0 text-xl font-extrabold text-foreground tracking-tight">Report Incident</h2>
+                    <h2 id="modal-title" className="m-0 text-xl font-extrabold text-foreground tracking-tight">Report an incident</h2>
                     <p className="m-0 mt-1 text-xs font-medium text-muted-foreground">
                         Location: <span className="font-mono bg-muted px-1.5 py-0.5 rounded text-foreground">{lat.toFixed(4)}, {lng.toFixed(4)}</span>
                     </p>
@@ -58,7 +61,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                 <form onSubmit={handleSubmit} className="flex flex-col gap-4">
                     
                     <div className="flex flex-col gap-2" role="group" aria-labelledby="incident-type-label">
-                        <label id="incident-type-label" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Incident Type</label>
+                        <label id="incident-type-label" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Incident type</label>
                         <div className="grid grid-cols-2 gap-2">
                             {INCIDENT_TYPES.map((type) => {
                                 const Icon = type.icon;
@@ -86,20 +89,20 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                     </div>
 
                     <div className="flex flex-col gap-1.5 mt-2">
-                        <label htmlFor="incident-description" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description (Optional)</label>
+                        <label htmlFor="incident-description" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Description (optional)</label>
                         <textarea 
                             id="incident-description"
                             value={description}
                             onChange={e => setDescription(e.target.value)}
                             rows={2}
-                            placeholder="Add any helpful details..."
+                            placeholder="Describe what happened or what others should know."
                             className="w-full bg-muted border border-input text-foreground text-sm font-medium rounded-xl p-3 focus:ring-2 focus:ring-primary focus:border-primary transition-all outline-none resize-none placeholder:text-muted-foreground/60"
                         />
                     </div>
 
                     <div className="flex flex-col gap-1.5">
                         <label htmlFor="incident-image" className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
-                            Photo (Optional)
+                            Photo (optional)
                         </label>
                         <input
                             id="incident-image"
@@ -109,7 +112,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                                 const selectedFile = event.target.files?.[0] || null;
                                 if (selectedFile && selectedFile.size > 5 * 1024 * 1024) {
                                     setImageFile(null);
-                                    setError('Photo must be 5 MB or smaller.');
+                                    setError('Choose an image no larger than 5 MB.');
                                     event.target.value = '';
                                     return;
                                 }
@@ -121,7 +124,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                             className="w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-xs file:font-bold file:text-secondary-foreground"
                         />
                         <p id="incident-image-help" className="text-xs text-muted-foreground m-0">
-                            JPEG, PNG, or WebP up to 5 MB. If you attach a photo, the photo and report description are sent to Google Gemini for an AI-generated review aid. A moderator makes the decision.
+                            Use a JPEG, PNG, or WebP image no larger than 5 MB. If you attach a photo, we send it and your report description to Google Gemini to create a review aid. A moderator makes the decision.
                         </p>
                     </div>
 
@@ -139,7 +142,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                             disabled={isSubmitting}
                             className="px-4 py-2.5 bg-primary text-primary-foreground text-sm font-bold rounded-xl shadow-lg shadow-primary/20 hover:-translate-y-0.5 hover:shadow-primary/30 transition-all disabled:opacity-70 disabled:hover:translate-y-0 flex items-center justify-center min-w-[100px]"
                         >
-                            {isSubmitting ? 'Sending...' : 'Submit Report'}
+                            {isSubmitting ? 'Submitting…' : 'Submit report'}
                         </button>
                     </div>
                 </form>

@@ -3,6 +3,7 @@ import { useNavigate, Link } from "react-router-dom"
 import { APIError } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
 import { User, Lock, Mail, KeyRound, AlertCircle, UserPlus } from 'lucide-react'
+import { GuestAuthLayout } from '../components/GuestAuthLayout'
 
 export function RegisterPage() {
     const [ formData, setFormData ] = useState({
@@ -41,140 +42,140 @@ export function RegisterPage() {
             if (error instanceof APIError ) {
                 setErrorMessage(error.message)
             } else {
-                setErrorMessage('Unable to connect to the server.')
+                setErrorMessage('We couldn’t complete your request. Check your connection and try again.')
             }
         } finally {
             setIsSubmitting(false)
         }
     }
 
-    return(
-        <main className="min-h-screen w-full flex items-center justify-center bg-background p-4 animate-in fade-in duration-500">
-            <div className="w-full max-w-md bg-card/95 backdrop-blur-md border border-border p-8 rounded-3xl shadow-2xl flex flex-col gap-6 relative overflow-hidden">
-                
-                {/* Decorative Top Accent */}
-                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500"></div>
-
-                <div className="flex flex-col items-center text-center">
-                    <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center mb-4">
-                        <UserPlus className="w-6 h-6 text-primary" />
-                    </div>
-                    <h1 className="text-2xl font-extrabold tracking-tight text-foreground m-0">Create Account</h1>
-                    <p className="text-sm font-medium text-muted-foreground mt-2">Join the Lock-Ad community today</p>
+    return (
+        <GuestAuthLayout>
+            <header className="mb-7">
+                <div className="mb-5 inline-flex items-center gap-2 rounded-full bg-emerald-50 px-3 py-1.5 text-xs font-semibold text-emerald-800">
+                    <span className="h-2 w-2 rounded-full bg-emerald-600" aria-hidden="true" />
+                    New account
                 </div>
+                <div className="mb-4 grid h-11 w-11 place-items-center rounded-xl bg-slate-100 text-primary">
+                    <UserPlus className="h-5 w-5" aria-hidden="true" />
+                </div>
+                <h1 className="m-0 text-2xl font-bold tracking-tight text-foreground sm:text-[1.75rem]">
+                    Create your account
+                </h1>
+                <p className="mb-0 mt-2 text-sm leading-6 text-muted-foreground">
+                    Save routes and share community safety reports.
+                </p>
+            </header>
 
-                <form onSubmit={handleSubmit} className="flex flex-col gap-5 mt-2">
-                    
-                    {errorMessage && (
-                        <div className="bg-destructive/10 border border-destructive/20 p-3 rounded-xl flex items-center gap-2 animate-in slide-in-from-top-2">
-                            <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
-                            <p className="text-sm font-bold text-destructive m-0" role="alert">{errorMessage}</p>
-                        </div>
-                    )}
-
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="username" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Username</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <User className="w-4 h-4 text-muted-foreground/50" />
-                            </div>
-                            <input
-                                id="username"
-                                name="username"
-                                type="text"
-                                autoComplete="username"
-                                value={formData.username}
-                                onChange={handleChange}
-                                required
-                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
-                                placeholder="Choose a username"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="email" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Email</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Mail className="w-4 h-4 text-muted-foreground/50" />
-                            </div>
-                            <input 
-                                id="email"
-                                name="email"
-                                type="email"
-                                autoComplete="email"
-                                value={formData.email}
-                                onChange={handleChange}
-                                required 
-                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
-                                placeholder="name@example.com"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="password" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Password</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <Lock className="w-4 h-4 text-muted-foreground/50" />
-                            </div>
-                            <input 
-                                id="password"
-                                name="password"
-                                type="password"
-                                autoComplete="new-password"
-                                value={formData.password}
-                                onChange={handleChange}
-                                required
-                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40"
-                                placeholder="Create a strong password"
-                            />
-                        </div>
-                    </div>
-
-                    <div className="flex flex-col gap-1.5">
-                        <label htmlFor="password_confirm" className="text-[11px] font-bold uppercase tracking-wider text-muted-foreground ml-1">Confirm Password</label>
-                        <div className="relative">
-                            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                                <KeyRound className="w-4 h-4 text-muted-foreground/50" />
-                            </div>
-                            <input 
-                                id="password_confirm"
-                                name="password_confirm"
-                                type="password"
-                                autoComplete="new-password"
-                                value={formData.password_confirm}
-                                onChange={handleChange}
-                                required
-                                disabled={isSubmitting}
-                                className="w-full bg-muted/50 border border-input text-foreground text-sm font-medium rounded-xl pl-10 pr-4 py-3 focus:ring-2 focus:ring-primary/50 focus:border-primary transition-all outline-none placeholder:text-muted-foreground/40 disabled:opacity-50"
-                                placeholder="Confirm your password"
-                            />
-                        </div>
-                    </div>
-
-                    <button 
-                        type="submit" 
-                        disabled={isSubmitting}
-                        className="w-full mt-2 flex items-center justify-center gap-2 bg-primary text-primary-foreground text-sm font-bold rounded-xl py-3.5 shadow-lg shadow-primary/25 hover:shadow-primary/40 hover:-translate-y-0.5 transition-all disabled:opacity-50 disabled:hover:translate-y-0 disabled:shadow-none"
+            <form onSubmit={handleSubmit} className="space-y-5">
+                {errorMessage && (
+                    <div
+                        className="flex items-start gap-2.5 rounded-xl border border-destructive/20 bg-destructive/5 p-3.5 text-destructive motion-safe:animate-in motion-safe:slide-in-from-top-2"
+                        role="alert"
+                        aria-live="polite"
                     >
-                        {isSubmitting ? (
-                            <div className="w-5 h-5 border-2 border-primary-foreground/30 border-t-primary-foreground rounded-full animate-spin"></div>
-                        ) : (
-                            "Sign Up"
-                        )}
-                    </button>
-                </form>
+                        <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden="true" />
+                        <p className="m-0 text-sm font-medium leading-5">{errorMessage}</p>
+                    </div>
+                )}
 
-                <div className="text-center mt-2">
-                    <p className="text-sm font-medium text-muted-foreground">
-                        Already have an account?{' '}
-                        <Link to="/login" className="text-primary font-bold hover:underline underline-offset-4">
-                            Log in
-                        </Link>
-                    </p>
+                <div>
+                    <label htmlFor="username" className="mb-2 block text-sm font-semibold text-slate-700">Username</label>
+                    <div className="relative">
+                        <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            id="username"
+                            name="username"
+                            type="text"
+                            autoComplete="username"
+                            value={formData.username}
+                            onChange={handleChange}
+                            required
+                            disabled={isSubmitting}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-slate-400 transition focus:border-emerald-700 focus:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/10 disabled:opacity-60"
+                            placeholder="Choose a username"
+                        />
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <div>
+                    <label htmlFor="email" className="mb-2 block text-sm font-semibold text-slate-700">Email</label>
+                    <div className="relative">
+                        <Mail className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            id="email"
+                            name="email"
+                            type="email"
+                            autoComplete="email"
+                            value={formData.email}
+                            onChange={handleChange}
+                            required
+                            disabled={isSubmitting}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-slate-400 transition focus:border-emerald-700 focus:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/10 disabled:opacity-60"
+                            placeholder="name@example.com"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor="password" className="mb-2 block text-sm font-semibold text-slate-700">Password</label>
+                    <div className="relative">
+                        <Lock className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            id="password"
+                            name="password"
+                            type="password"
+                            autoComplete="new-password"
+                            value={formData.password}
+                            onChange={handleChange}
+                            required
+                            disabled={isSubmitting}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-slate-400 transition focus:border-emerald-700 focus:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/10 disabled:opacity-60"
+                            placeholder="Choose a password"
+                        />
+                    </div>
+                </div>
+
+                <div>
+                    <label htmlFor="password_confirm" className="mb-2 block text-sm font-semibold text-slate-700">Confirm password</label>
+                    <div className="relative">
+                        <KeyRound className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
+                        <input
+                            id="password_confirm"
+                            name="password_confirm"
+                            type="password"
+                            autoComplete="new-password"
+                            value={formData.password_confirm}
+                            onChange={handleChange}
+                            required
+                            disabled={isSubmitting}
+                            className="w-full rounded-xl border border-slate-200 bg-slate-50/70 py-3 pl-10 pr-4 text-sm text-foreground placeholder:text-slate-400 transition focus:border-emerald-700 focus:bg-white focus:outline-none focus-visible:ring-4 focus-visible:ring-emerald-700/10 disabled:opacity-60"
+                            placeholder="Enter your password again"
+                        />
+                    </div>
+                </div>
+
+                <button
+                    type="submit"
+                    disabled={isSubmitting}
+                    aria-busy={isSubmitting}
+                    className="mt-1 flex min-h-12 w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground shadow-sm transition hover:bg-slate-800 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700 disabled:cursor-wait disabled:opacity-60"
+                >
+                    {isSubmitting ? (
+                        <>
+                            <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/35 border-t-white" aria-hidden="true" />
+                            Creating account…
+                        </>
+                    ) : 'Create account'}
+                </button>
+            </form>
+
+            <p className="mb-0 mt-7 text-center text-sm text-muted-foreground">
+                Already have an account?{' '}
+                <Link to="/login" className="rounded-sm font-semibold text-primary underline-offset-4 hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald-700">
+                    Log in
+                </Link>
+            </p>
+        </GuestAuthLayout>
     )
 }
