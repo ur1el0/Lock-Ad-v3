@@ -35,6 +35,11 @@ class Command(BaseCommand):
             default='13.91,121.58,13.97,121.65',
             help='Bounding box in format: min_lat,min_lng,max_lat,max_lng'
         )
+        parser.add_argument(
+            '--dry-run',
+            action='store_true',
+            help='Fetch and validate OSM data without changing database records.',
+        )
 
     def handle(self, *args, **options):
         bbox = options['bbox']
@@ -163,6 +168,15 @@ class Command(BaseCommand):
             longitude__gte=min_lng,
             longitude__lte=max_lng,
         )
+        if options['dry_run']:
+            self.stdout.write(self.style.WARNING(
+                'Dry run preview:\n'
+                f'Existing OSM records to replace: {existing_in_bbox.count()}\n'
+                f'Supported signals to import: {len(signals_to_create)}\n'
+                'No database changes were made.'
+            ))
+            return
+
         with transaction.atomic():
             deleted_count, _ = existing_in_bbox.delete()
             SafetySignal.objects.bulk_create(signals_to_create)
