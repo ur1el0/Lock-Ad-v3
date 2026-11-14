@@ -57,11 +57,11 @@ personal-safety advice.
 
 ## Use the map and submit a report
 
-The map is designed to display imported public-place signals and approved
-community reports. At this revision, the map client does not unwrap the API's
-paginated list response, so those markers may not load until the integration
-gap is fixed. An empty map does not mean the area has no signals or reports.
-See [known integration gaps](PROJECT_README.md#known-integration-gaps).
+The map displays imported public-place signals and approved community reports
+within the visible area when records are available. Coverage and freshness
+vary; an empty map does not mean the area has no signals or reports. Check the
+visible area and map filters, and see
+[Data Sources and Coverage](DATA_SOURCES_AND_COVERAGE.md).
 
 If the report form is available from the map, select the location, choose a
 report type, add a concise description, and optionally attach a JPEG, PNG, or
@@ -87,8 +87,7 @@ it to request help.
 The current API lets a signed-in user create, list, and view their own
 contacts. Editing and deletion are staff-only at the API. The web interface
 shows a three-contact limit, but the backend does not enforce that limit. The
-current contacts screen also expects a bare array while the API is paginated,
-so the contact list may fail to render until that integration gap is fixed.
+contacts list is scoped to the signed-in account.
 
 ## Moderator workflow
 
@@ -108,7 +107,7 @@ only an aid for human review.
 | Route provider error | Check the provider/network and retry; the service may be unavailable or have no route for those points. |
 | Current weather is unavailable | Check the network and retry. Route preview does not depend on weather. |
 | Browser location is unavailable | Allow location access for the local site or enter coordinates manually. |
-| A map, saved-route list, or contact list appears empty | See the [current integration gaps](PROJECT_README.md#known-integration-gaps); list responses are paginated and some client screens still expect arrays. |
+| The map has no markers or a saved/contact list is empty | Check the map area and filters, signed-in account, and network. Data may be unavailable or incomplete; missing markers do not establish safety. |
 
 For developers, the [API reference](API_REFERENCE.md) describes response
 formats and the [data-source guide](DATA_SOURCES_AND_COVERAGE.md) explains

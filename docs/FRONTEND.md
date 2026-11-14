@@ -42,9 +42,10 @@ npm run preview
 ```
 
 `npm test` runs the Vitest and React Testing Library suite in JSDOM. The tests
-exercise authentication, route-planner, and moderator-queue flows with isolated
-API responses; they do not require a running backend. Moderator tests cover the
-report queue, approval/rejection, empty and load-error states, and update errors.
+cover authentication, route planning, list pagination, contact rendering,
+staff navigation, and moderator-queue behavior with mocked API responses; they
+do not require a running backend. Moderator tests cover approval/rejection,
+empty and load-error states, and update errors.
 
 ## API proxy
 
@@ -106,10 +107,10 @@ GuestOnlyRoute   blocks logged-in users from login/register
 /register  guest-only registration page
 ```
 
-List endpoints return a paginated object rather than a bare array. The
-[API Reference](API_REFERENCE.md) documents the contract, and the
-[project plan](PROJECT_README.md#known-integration-gaps) records current
-screens that still need to normalize that response.
+List endpoints return paginated objects. The API helpers follow each next
+link and return a flat array to the screens that need a complete collection.
+Use that helper for new collection reads; see the
+[API Reference](API_REFERENCE.md) for the server contract.
 
 ## Later frontend work
 
