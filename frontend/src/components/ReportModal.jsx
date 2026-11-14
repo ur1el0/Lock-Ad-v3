@@ -124,7 +124,7 @@ export function ReportModal({ lat, lng, onClose, onSuccess }) {
                             className="w-full text-sm text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-secondary file:px-3 file:py-2 file:text-xs file:font-bold file:text-secondary-foreground"
                         />
                         <p id="incident-image-help" className="text-xs text-muted-foreground m-0">
-                            Use a JPEG, PNG, or WebP image no larger than 5 MB. Your photo and description are sent to Google Gemini only if the service is enabled by the operator; otherwise, a moderator reviews them manually. Gemini output never decides the report.
+                            Use a JPEG, PNG, or WebP image no larger than 5 MB. If Gemini and photo analysis are enabled and configured, the photo and description are sent to Google Gemini for a moderator review aid; a moderator makes the decision. Avoid faces, license plates, names, and other identifying details.
                         </p>
                     </div>
 

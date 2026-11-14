@@ -11,6 +11,7 @@ https://docs.djangoproject.com/en/6.0/ref/settings/
 """
 import os
 from pathlib import Path
+from celery.schedules import crontab
 from django.core.exceptions import ImproperlyConfigured
 from dotenv import load_dotenv
 
@@ -63,35 +64,42 @@ if GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED and not GEMINI_API_ENABLED:
         "GEMINI_API_ENABLED must be True before enabling incident image analysis."
     )
 
+
+def csv_setting(name, default):
+    return [
+        value.strip()
+        for value in os.getenv(name, default).split(',')
+        if value.strip()
+    ]
+
 SECURE_COOKIES = os.getenv(
     'DJANGO_SECURE_COOKIES',
     str(not DEBUG),
 ).lower() == 'true'
 SESSION_COOKIE_SECURE = SECURE_COOKIES
 CSRF_COOKIE_SECURE = SECURE_COOKIES
+if os.getenv('DJANGO_TRUST_X_FORWARDED_PROTO', 'False').lower() == 'true':
+    # Enable only when Django is behind the controlled frontend proxy.
+    SECURE_PROXY_SSL_HEADER = ('HTTP_X_FORWARDED_PROTO', 'https')
 
-ALLOWED_HOSTS = os.getenv(
-    "DJANGO_ALLOWED_HOSTS",
-    "127.0.0.1,localhost"
-).split(",")
+ALLOWED_HOSTS = csv_setting(
+    'DJANGO_ALLOWED_HOSTS',
+    '127.0.0.1,localhost',
+)
 
-CSRF_TRUSTED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "http://localhost:5175",
-    "http://127.0.0.1:5175",
-]
+CSRF_TRUSTED_ORIGINS = csv_setting(
+    'DJANGO_CSRF_TRUSTED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,'
+    'http://localhost:5174,http://127.0.0.1:5174,'
+    'http://localhost:5175,http://127.0.0.1:5175',
+)
 
-CORS_ALLOWED_ORIGINS = [
-    "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:5174",
-    "http://127.0.0.1:5174",
-    "http://localhost:5175",
-    "http://127.0.0.1:5175",
-]
+CORS_ALLOWED_ORIGINS = csv_setting(
+    'DJANGO_CORS_ALLOWED_ORIGINS',
+    'http://localhost:5173,http://127.0.0.1:5173,'
+    'http://localhost:5174,http://127.0.0.1:5174,'
+    'http://localhost:5175,http://127.0.0.1:5175',
+)
 
 
 # Application definition
@@ -214,6 +222,7 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
         'user': '1000/day',
+        # Keep provider-backed work under explicit request budgets.
         'incident_image_upload': '10/day',
         'gemini_advisory_anon': '20/hour',
         'gemini_advisory_user': '100/day',
@@ -221,6 +230,41 @@ REST_FRAMEWORK = {
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,
 }
+
+# Redis also backs the asynchronous image-analysis queue. A dedicated DB
+# keeps task messages away from channel-layer and cache keys.
+CELERY_BROKER_URL = os.getenv(
+    'CELERY_BROKER_URL',
+    f"redis://{os.getenv('REDIS_HOST', 'localhost')}:6379/2",
+)
+CELERY_TASK_SERIALIZER = 'json'
+CELERY_ACCEPT_CONTENT = ['json']
+CELERY_TASK_IGNORE_RESULT = True
+CELERY_TASK_ACKS_LATE = True
+CELERY_TASK_REJECT_ON_WORKER_LOST = True
+CELERY_WORKER_PREFETCH_MULTIPLIER = 1
+CELERY_TASK_TIME_LIMIT = 60
+CELERY_TASK_SOFT_TIME_LIMIT = 45
+CELERY_BROKER_CONNECTION_TIMEOUT = 5
+CELERY_BROKER_TRANSPORT_OPTIONS = {'visibility_timeout': 300}
+CELERY_RESULT_BACKEND_TRANSPORT_OPTIONS = {'visibility_timeout': 300}
+CELERY_VISIBILITY_TIMEOUT = 300
+
+_image_retention_days = os.getenv('INCIDENT_IMAGE_RETENTION_DAYS', '').strip()
+if _image_retention_days:
+    try:
+        INCIDENT_IMAGE_RETENTION_DAYS = int(_image_retention_days)
+    except ValueError as error:
+        raise ImproperlyConfigured(
+            'INCIDENT_IMAGE_RETENTION_DAYS must be a positive integer.'
+        ) from error
+    if INCIDENT_IMAGE_RETENTION_DAYS <= 0:
+        raise ImproperlyConfigured(
+            'INCIDENT_IMAGE_RETENTION_DAYS must be a positive integer.'
+        )
+else:
+    # Automatic deletion stays disabled until the owner sets a policy period.
+    INCIDENT_IMAGE_RETENTION_DAYS = None
 
 # Password validation
 # https://docs.djangoproject.com/en/6.0/ref/settings/#auth-password-validators
@@ -247,6 +291,23 @@ AUTH_PASSWORD_VALIDATORS = [
 LANGUAGE_CODE = 'en-us'
 
 TIME_ZONE = 'Asia/Manila'
+CELERY_TIMEZONE = TIME_ZONE
+
+CELERY_BEAT_SCHEDULE = {
+    'recover-stale-incident-image-analysis': {
+        'task': 'safety_data.tasks.recover_stale_incident_image_analyses',
+        'schedule': crontab(minute='*/2'),
+    },
+    'retry-incident-image-deletions': {
+        'task': 'safety_data.tasks.process_pending_incident_image_deletions',
+        'schedule': crontab(minute='*/10'),
+    },
+}
+if INCIDENT_IMAGE_RETENTION_DAYS is not None:
+    CELERY_BEAT_SCHEDULE['purge-expired-incident-images'] = {
+        'task': 'safety_data.tasks.purge_expired_incident_images',
+        'schedule': crontab(hour=3, minute=15),
+    }
 
 USE_I18N = True
 

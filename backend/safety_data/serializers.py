@@ -52,16 +52,16 @@ class IncidentReportSerializer(serializers.ModelSerializer):
             'description',
             'image',
             'ai_analysis',
+            'analysis_status',
             'latitude',
             'longitude',
             'status',
-            'confidence_score',
             'reported_at',
             'occurred_at',
         ]
         read_only_fields = [
             'ai_analysis',
-            'confidence_score',
+            'analysis_status',
             'reported_at',
         ]
 
@@ -121,6 +121,7 @@ class IncidentReportSerializer(serializers.ModelSerializer):
             )
         else:
             data.pop('ai_analysis', None)
+            data.pop('analysis_status', None)
 
         return data
 

@@ -6,23 +6,16 @@ Central documentation for Lock-Ad v3.
 
 - [Project README and Plan](PROJECT_README.md)
 - [Backend Guide](BACKEND.md)
+- [Operations and Production Readiness](OPERATIONS.md)
+- [Report Privacy and AI Processing](PRIVACY_AND_AI.md)
 - [Frontend Guide](FRONTEND.md)
-- [Privacy and AI Data Flows](PRIVACY_AND_AI.md)
 - [Conversation / Project Context Export](CONVERSATION_EXPORT.md)
 
-## Current project focus
+## Active work
 
-The current implementation focus is:
-
-```txt
-feature/navigation-api
-```
-
-Goal:
-
-```txt
-Build the backend route preview API using OpenRouteService through Django.
-```
+The active scope is tracked through the current review branches and pull
+requests. This index stays focused on durable project documentation rather
+than a branch-specific task list.
 
 ## Documentation rule
 

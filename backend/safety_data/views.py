@@ -1,7 +1,9 @@
+import logging
 import math
 import requests
 
 from django.conf import settings
+from django.db import transaction
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from PIL import Image, UnidentifiedImageError
@@ -12,7 +14,7 @@ from rest_framework.response import Response
 from rest_framework.throttling import AnonRateThrottle, UserRateThrottle
 from rest_framework.views import APIView
 
-from safety_data.ai_service import get_travel_advisory, analyze_incident_image
+from safety_data.ai_service import get_travel_advisory
 from safety_data.models import IncidentReport, SafetySignal
 from safety_data.serializers import (
     IncidentReportSerializer,
@@ -20,6 +22,37 @@ from safety_data.serializers import (
     TravelAdvisoryRequestSerializer,
     WeatherRequestSerializer,
 )
+from safety_data.tasks import analyze_incident_image_task
+
+
+logger = logging.getLogger(__name__)
+MANUAL_REVIEW_MESSAGE = (
+    'Automated vision analysis unavailable. Manual review required.'
+)
+
+
+def enqueue_incident_image_analysis(report_id):
+    try:
+        analyze_incident_image_task.delay(report_id)
+    except Exception as error:
+        logger.warning(
+            'Incident image analysis could not be queued (%s).',
+            type(error).__name__,
+        )
+        try:
+            IncidentReport.objects.filter(
+                pk=report_id,
+                analysis_status='PENDING',
+            ).update(
+                analysis_status='FAILED',
+                analysis_started_at=None,
+                ai_analysis=MANUAL_REVIEW_MESSAGE,
+            )
+        except Exception as state_error:
+            logger.warning(
+                'Incident analysis failure state could not be saved (%s).',
+                type(state_error).__name__,
+            )
 
 
 class IncidentImageUploadThrottle(UserRateThrottle):
@@ -80,7 +113,7 @@ class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = SafetySignalSerializer
     
     def get_queryset(self):
-        queryset = SafetySignal.objects.all()
+        queryset = SafetySignal.objects.all().order_by('created_at', 'pk')
         min_lat = self.request.query_params.get('min_lat')
         max_lat = self.request.query_params.get('max_lat')
         min_lng = self.request.query_params.get('min_lng')
@@ -140,22 +173,21 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
 
     def perform_create(self, serializer):
         # Explicitly override client payload to force safe default states
-        report = serializer.save(
-            user=self.request.user,
-            status='PENDING'
-        )
-        if (
-            report.image
+        should_analyze_image = (
+            bool(serializer.validated_data.get('image'))
             and settings.GEMINI_API_ENABLED
             and settings.GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED
-        ):
-            analysis = analyze_incident_image(
-                report.image,
-                report.incident_type,
-                report.description or ''
+        )
+        report = serializer.save(
+            user=self.request.user,
+            status='PENDING',
+            analysis_status='PENDING' if should_analyze_image else 'NOT_REQUESTED',
+        )
+        if should_analyze_image and report.image:
+            transaction.on_commit(
+                lambda report_id=report.pk: enqueue_incident_image_analysis(report_id)
             )
-            report.ai_analysis = analysis
-            report.save(update_fields=['ai_analysis'])
+            report.refresh_from_db(fields=['analysis_status', 'ai_analysis'])
 
 def weather_condition_from_code(weather_code):
     if weather_code == 0:

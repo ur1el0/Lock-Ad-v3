@@ -15,7 +15,19 @@ import {
 } from "lucide-react";
 
 export function ModeratorDashboard() {
-    const { data, error, isLoading, mutate } = useSWR('/api/safety/incidents/', getAllIncidentReports);
+    const { data, error, isLoading, mutate } = useSWR(
+        '/api/safety/incidents/',
+        getAllIncidentReports,
+        {
+            refreshInterval: latestData => {
+                const latestReports = latestData?.results || latestData || [];
+                return latestReports.some(report =>
+                    report.analysis_status === 'PENDING' ||
+                    report.analysis_status === 'PROCESSING'
+                ) ? 5000 : 0;
+            },
+        },
+    );
     const [selectedImage, setSelectedImage] = useState(null);
     const [isImageZoomed, setIsImageZoomed] = useState(false);
     const imageDialogRef = useRef(null);
@@ -174,27 +186,42 @@ export function ModeratorDashboard() {
                                         </button>
                                     )}
 
-                                    {report.ai_analysis && (
+                                    {report.image && (
                                         <section
-                                            aria-label="AI-generated moderator review aid"
+                                            aria-label="Incident photo review"
                                             className="rounded-xl border border-border bg-muted/40 p-3"
                                         >
                                             <h4 className="m-0 text-xs font-bold text-foreground">
-                                                AI-generated review aid
+                                                Photo review
                                             </h4>
-                                            <p className="m-0 mt-1 text-[11px] text-muted-foreground">
-                                                May be inaccurate. Review the photo and report yourself.
-                                            </p>
-                                            <p className="m-0 mt-2 text-sm text-foreground/90">
-                                                {report.ai_analysis}
-                                            </p>
+                                            {report.analysis_status === 'PENDING' || report.analysis_status === 'PROCESSING' ? (
+                                                <p role="status" className="m-0 mt-2 text-sm text-muted-foreground">
+                                                    {report.analysis_status === 'PENDING'
+                                                        ? 'Photo analysis is queued.'
+                                                        : 'Photo analysis is in progress.'}
+                                                </p>
+                                            ) : null}
+                                            {report.analysis_status === 'FAILED' ? (
+                                                <p role="status" className="m-0 mt-2 text-sm text-muted-foreground">
+                                                    Automated photo analysis is unavailable. Review the photo manually.
+                                                </p>
+                                            ) : null}
+                                            {report.analysis_status === 'NOT_REQUESTED' ? (
+                                                <p role="status" className="m-0 mt-2 text-sm text-muted-foreground">
+                                                    Automated photo analysis was not requested. Review the photo manually.
+                                                </p>
+                                            ) : null}
+                                            {report.analysis_status === 'COMPLETED' && report.ai_analysis ? (
+                                                <>
+                                                    <p className="m-0 mt-1 text-[11px] text-muted-foreground">
+                                                        May be inaccurate. Review the photo and report yourself.
+                                                    </p>
+                                                    <p className="m-0 mt-2 text-sm text-foreground/90">
+                                                        {report.ai_analysis}
+                                                    </p>
+                                                </>
+                                            ) : null}
                                         </section>
-                                    )}
-
-                                    {report.image && !report.ai_analysis && (
-                                        <p className="m-0 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
-                                            No automated review aid is available. Review the photo and report yourself.
-                                        </p>
                                     )}
 
                                     {/* Location & Timestamp Metadata */}

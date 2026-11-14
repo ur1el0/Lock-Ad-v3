@@ -8,6 +8,7 @@ Start here:
 
 - [Project README and Plan](docs/PROJECT_README.md)
 - [Backend Guide](docs/BACKEND.md)
+- [Operations and Production Readiness](docs/OPERATIONS.md)
 - [Frontend Guide](docs/FRONTEND.md)
 - [Conversation / Project Context Export](docs/CONVERSATION_EXPORT.md)
 
@@ -33,9 +34,25 @@ npm install
 npm run dev
 ```
 
+Docker Compose:
+
+```bash
+test -f backend/.env || cp backend/.env.example backend/.env
+# Set a unique DJANGO_SECRET_KEY and a strong POSTGRES_PASSWORD in backend/.env.
+docker compose --env-file backend/.env up -d --build
+```
+
+Compose frontend: http://localhost:8003. See the
+[operations guide](docs/OPERATIONS.md) for production, backup, and restore
+commands.
+
 Use:
 
 ```txt
 Frontend: http://localhost:5173
 Backend:  http://127.0.0.1:8004
 ```
+
+Incident-photo analysis runs in a Celery worker and requires Redis. See the
+[backend guide](docs/BACKEND.md) for local worker setup and the
+[operations guide](docs/OPERATIONS.md) for Compose and production operations.

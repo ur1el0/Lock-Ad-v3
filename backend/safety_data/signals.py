@@ -3,20 +3,22 @@ import logging
 from asgiref.sync import async_to_sync
 from channels.layers import get_channel_layer
 from django.db import transaction
-from django.db.models.signals import post_delete, post_save, pre_save
+from django.db.models.signals import post_delete, post_save
 from django.dispatch import receiver
 
-from safety_data.models import IncidentReport
+from safety_data.models import IncidentImageDeletion, IncidentReport
 
 logger = logging.getLogger(__name__)
 
 
-def remove_stored_image(storage, image_name):
+def schedule_pending_image_deletions():
     try:
-        storage.delete(image_name)
+        from safety_data.tasks import process_pending_incident_image_deletions
+
+        process_pending_incident_image_deletions.delay()
     except Exception as error:
         logger.warning(
-            'Incident image cleanup failed (%s).',
+            'Incident image cleanup could not be queued (%s).',
             type(error).__name__,
         )
 
@@ -26,21 +28,11 @@ def delete_incident_image(sender, instance, **kwargs):
     if not instance.image:
         return
 
-    storage = instance.image.storage
     image_name = instance.image.name
-    transaction.on_commit(lambda: remove_stored_image(storage, image_name))
-
-
-@receiver(pre_save, sender=IncidentReport)
-def remember_previous_status(sender, instance, **kwargs):
-    if instance._state.adding:
-        instance._previous_status = None
-        return
-
-    instance._previous_status = (
-        sender.objects.filter(pk=instance.pk)
-        .values_list('status', flat=True)
-        .first()
+    IncidentImageDeletion.objects.get_or_create(image_name=image_name)
+    transaction.on_commit(
+        schedule_pending_image_deletions,
+        robust=True,
     )
 
 
@@ -53,10 +45,6 @@ def broadcast_approved_incidents(sender, instance, **kwargs):
     ):
         return
 
-    channel_layer = get_channel_layer()
-    if channel_layer is None:
-        return
-
     message = {
         'id': instance.pk,
         'incident_type': instance.incident_type,
@@ -65,10 +53,23 @@ def broadcast_approved_incidents(sender, instance, **kwargs):
         'longitude': str(instance.longitude),
         'reported_at': instance.reported_at.isoformat(),
     }
-    async_to_sync(channel_layer.group_send)(
-        'incidents',
-        {
-            'type': 'incident_update',
-            'message': message,
-        },
-    )
+
+    def publish_after_commit():
+        try:
+            channel_layer = get_channel_layer()
+            if channel_layer is None:
+                return
+            async_to_sync(channel_layer.group_send)(
+                'incidents',
+                {
+                    'type': 'incident_update',
+                    'message': message,
+                },
+            )
+        except Exception as error:
+            logger.warning(
+                'Approved incident broadcast failed (%s).',
+                type(error).__name__,
+            )
+
+    transaction.on_commit(publish_after_commit, robust=True)
