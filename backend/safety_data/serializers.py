@@ -132,6 +132,37 @@ class SafetySignalSerializer(serializers.ModelSerializer):
         fields = '__all__'
 
 
+class BoundingBoxQuerySerializer(serializers.Serializer):
+    min_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    max_lat = serializers.FloatField(required=False, min_value=-90, max_value=90)
+    min_lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+    max_lng = serializers.FloatField(required=False, min_value=-180, max_value=180)
+
+    def validate(self, attrs):
+        fields = {'min_lat', 'max_lat', 'min_lng', 'max_lng'}
+        provided_fields = set(attrs)
+        if not provided_fields:
+            return attrs
+
+        missing_fields = fields - provided_fields
+        if missing_fields:
+            raise serializers.ValidationError({
+                field: 'Required when bounding-box filtering is used.'
+                for field in missing_fields
+            })
+
+        if attrs['min_lat'] >= attrs['max_lat']:
+            raise serializers.ValidationError({
+                'max_lat': 'Must be greater than min_lat.'
+            })
+        if attrs['min_lng'] >= attrs['max_lng']:
+            raise serializers.ValidationError({
+                'max_lng': 'Must be greater than min_lng.'
+            })
+
+        return attrs
+
+
 class WeatherRequestSerializer(serializers.Serializer):
     lat = serializers.FloatField(min_value=-90, max_value=90)
     lng = serializers.FloatField(min_value=-180, max_value=180)
