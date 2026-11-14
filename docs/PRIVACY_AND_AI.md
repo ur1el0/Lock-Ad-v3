@@ -15,12 +15,13 @@ Gemini is disabled by default, even if `GEMINI_API_KEY` is configured:
   image analysis off. It can only be enabled when `GEMINI_API_ENABLED=True`.
 - `GEMINI_API_KEY` stores the provider credential. It does not enable a feature.
 
-Incident image analysis is synchronous and runs only when both switches are
-enabled and a report includes a photo. The backend sends the photo, incident
-category, and reporter-provided description to Google Gemini for a moderator
-review aid. The aid is not a truth determination or an approval decision; a
-human moderator reviews the report. If either switch is off, the submitted
-photo stays available for manual moderator review and is not sent to Gemini.
+Incident image analysis is queued asynchronously after the report is saved and
+runs only when both switches are enabled and a report includes a photo. The
+backend sends the photo, incident category, and reporter-provided description
+to Google Gemini for a moderator review aid. The aid is not a truth
+determination or an approval decision; a human moderator reviews the report.
+If either switch is off, the submitted photo stays available for manual
+moderator review and is not sent to Gemini.
 
 The travel advisory uses route distance and duration plus weather code and
 temperature. It does not require the user's account identity. With Gemini
@@ -35,9 +36,9 @@ abuse protection.
 
 Reports are private to their reporter while pending. Staff can review all
 reports. Other authenticated users can see approved reports, including report
-type, description, selected coordinates, status, confidence value, and report
-and occurrence timestamps. Automated analysis is omitted from non-staff API
-responses.
+type, description, selected coordinates, status, and report and occurrence
+timestamps. No calibrated confidence score is calculated or exposed.
+Automated analysis is omitted from non-staff API responses.
 
 Incident photos are not included in ordinary report responses for non-staff
 users. They are served through a staff-authorized endpoint; Django does not
