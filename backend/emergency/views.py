@@ -1,6 +1,9 @@
+from django.contrib.auth import get_user_model
+from django.db import transaction
 from rest_framework import viewsets, permissions
+from rest_framework.exceptions import ValidationError
 from rest_framework.permissions import IsAuthenticated
-from .models import EmergencyContact
+from .models import EmergencyContact, MAX_EMERGENCY_CONTACTS_PER_USER
 from .serializers import EmergencyContactSerializer
 
 class EmergencyContactViewSet(viewsets.ModelViewSet):
@@ -29,4 +32,14 @@ class EmergencyContactViewSet(viewsets.ModelViewSet):
         return EmergencyContact.objects.filter(user=user).order_by('-created_at')
 
     def perform_create(self, serializer):
-        serializer.save(user=self.request.user)
+        with transaction.atomic():
+            user = get_user_model().objects.select_for_update().get(
+                pk=self.request.user.pk
+            )
+            contact_count = EmergencyContact.objects.filter(user=user).count()
+            if contact_count >= MAX_EMERGENCY_CONTACTS_PER_USER:
+                raise ValidationError({
+                    'detail': 'You can save up to 3 emergency contacts.'
+                })
+
+            serializer.save(user=user)
