@@ -38,8 +38,10 @@ The importer is not a scheduled refresh job. An empty, invalid, or
 unsupported-only response preserves existing OSM records. A valid response
 with at least one supported signal replaces OSM records in the requested area
 with the returned set. The updated_at field records when Lock-Ad wrote the
-row, not when the source feature was last verified. Plan controlled refreshes
-and monitor Overpass availability before relying on imported coverage.
+row, not when the source feature was last verified. Request, HTTP, or JSON
+failures exit with a command error and preserve existing records so a script
+can detect an unsuccessful refresh. Plan controlled refreshes and monitor
+Overpass availability before relying on imported coverage.
 
 The query is limited to nodes and selected tags. It does not enumerate every
 camera, light, road, police facility, or medical facility in a jurisdiction.
