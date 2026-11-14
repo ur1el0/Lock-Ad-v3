@@ -2,15 +2,22 @@
 
 Lock-Ad v3 is a full-stack cautious navigation platform for the Philippines. It combines route previews with safety-related context such as lighting, public infrastructure, reports, weather, and available public datasets.
 
-Full documentation now lives in [`docs/`](docs/).
+Project documentation is indexed in [the docs directory](docs/); architecture
+references and decision records are in [the architecture directory](architecture/).
 
 Start here:
 
+- [User Guide](docs/USER_GUIDE.md)
 - [Project README and Plan](docs/PROJECT_README.md)
+- [System Architecture](architecture/README.md)
+- [API Reference](docs/API_REFERENCE.md)
+- [Data Sources and Coverage](docs/DATA_SOURCES_AND_COVERAGE.md)
 - [Backend Guide](docs/BACKEND.md)
-- [Operations and Production Readiness](docs/OPERATIONS.md)
 - [Frontend Guide](docs/FRONTEND.md)
-- [Conversation / Project Context Export](docs/CONVERSATION_EXPORT.md)
+- [Operations and Production Readiness](docs/OPERATIONS.md)
+- [Report Privacy and AI Processing](docs/PRIVACY_AND_AI.md)
+
+The [documentation index](docs/README.md) lists all durable project guides.
 
 ## Quick start
 

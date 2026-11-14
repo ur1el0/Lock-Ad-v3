@@ -1,516 +1,215 @@
-# Lock-Ad v3 Project README and Plan
-
-Lock-Ad v3 is a full-stack cautious navigation platform for the Philippines. It helps users preview walking routes with safety-related context such as lighting, nearby public infrastructure, route distance, travel time, reports, weather, and available public datasets.
-
-The app should not claim that any route is guaranteed safe. The correct product framing is:
-
-```txt
-cautious route
-risk-aware route
-safety-related signals
-advisory route guidance
-route context
-```
-
-Avoid:
-
-```txt
-guaranteed safe route
-crime-free path
-protected route
-```
-
-## Current stack
-
-```txt
-Backend: Django + Django REST Framework
-Frontend: React + Vite
-Auth: Django session authentication + CSRF protection
-Routing provider: OpenRouteService through the backend
-Local database: SQLite
-Compose database: PostgreSQL
-Real-time: Django Channels + Redis-backed WebSockets
-Background work: Celery + Redis for incident-photo analysis
-```
-
-## Repository structure
-
-```txt
-Lock-Ad-v3/
-├── backend/   Django REST API
-├── frontend/  React + Vite client
-└── docs/      project documentation
-```
-
-## Current implementation
-
-- Django REST backend
-- React/Vite frontend
-- Vite `/api` proxy to Django
-- Session-based authentication
-- CSRF token flow
-- Register/login/logout/current-user endpoints
-- Auth API client
-- AuthProvider and `useAuth`
-- Login and registration pages
-- Protected routes and guest-only routes
-- Authenticated home page with session controls
-- OpenRouteService route previews, saved routes, and mapped route context (no calibrated safety score)
-- Community incident reports, moderator review, private image access, and live approved-incident updates
-- Weather context and Gemini travel advisories with configured request limits
-- Optional Gemini photo summaries run through a Celery worker and Redis queue
-- Docker Compose services for PostgreSQL, Redis, Django, the worker, and the frontend
-- Optional production profile with Celery Beat and Caddy HTTPS termination
-
-## Product users
-
-- Students
-- Daily commuters
-- Pedestrians
-- Travelers
-- People walking at night
-- People who want route context before traveling
-- Local moderators/admins reviewing public reports
-
-## Core app flow
-
-```txt
-Guest user
-→ register/login
-→ enter origin and destination
-→ preview a cautious walking route
-→ review distance, time, and safety-related context
-→ optionally save the route
-→ optionally submit a local incident report
-→ moderators review submitted reports
-```
-
-## Backend apps
-
-```txt
-core         health and readiness endpoints
-accounts     auth/session user flows
-navigation   routing provider integration, saved routes, and route context
-safety_data  reports, moderation, safety signals, and overlays
-emergency    emergency contact features
-```
-
-`accounts`, `navigation`, and `safety_data` are separate domains.
-
-## Current API endpoints
-
-Core:
-
-```txt
-GET /api/health/
-GET /api/health/ready/
-```
-
-Accounts:
-
-```txt
-GET  /api/auth/csrf/
-POST /api/auth/register/
-POST /api/auth/login/
-POST /api/auth/logout/
-GET  /api/auth/me/
-```
-
-Navigation:
-
-```txt
-POST /api/navigation/routes/preview/
-```
-
-Safety data:
-
-```txt
-GET  /api/safety/signals/
-GET  /api/safety/incidents/
-POST /api/safety/incidents/
-GET  /api/safety/weather/
-POST /api/safety/advisory/
-```
-
-## Route preview target
-
-Target request:
-
-```json
-{
-  "origin": {
-    "lat": 13.9414,
-    "lng": 121.6236
-  },
-  "destination": {
-    "lat": 13.9442,
-    "lng": 121.6179
-  },
-  "profile": "foot-walking"
-}
-```
-
-Target response:
-
-```json
-{
-  "distance_meters": 1200,
-  "duration_seconds": 900,
-  "geometry": {},
-  "provider": "openrouteservice",
-  "profile": "foot-walking"
-}
-```
-
-Validation rules:
-
-- Origin is required.
-- Destination is required.
-- Latitude must be between `-90` and `90`.
-- Longitude must be between `-180` and `180`.
-- Profile defaults to `foot-walking`.
-- Only `foot-walking` is allowed at first.
-- Origin and destination cannot be the same point.
-
-## Safety-related data plan
-
-Use multiple data sources. Do not rely on one crime API.
-
-### OpenStreetMap + Overpass API
-
-Useful for:
-
-- roads
-- footpaths
-- alleys
-- police stations
-- hospitals
-- building footprints
-- street lighting tags such as `lit=yes` or `lit=no`
-- CCTV/surveillance tags where mapped
-
-### OpenRouteService
-
-Useful for:
-
-- walking routes
-- route geometry
-- distance and duration
-- isochrones
-- route generation that can later be combined with custom safety scoring
-
-### Nominatim
-
-Useful for:
-
-- geocoding
-- reverse geocoding
-
-### OpenWeather
-
-Useful for:
-
-- rain
-- storms
-- visibility
-- weather alerts
-
-### Geoapify
-
-Useful for:
-
-- nearby places
-- geocoding
-- amenities
-
-### PSGC
-
-Useful for:
-
-- regions
-- provinces
-- cities/municipalities
-- barangays
-- geographic codes
-- administrative hierarchy
-
-Not useful for:
-
-- crime data
-- CCTV data
-- street light data
-- safety incident data
-
-### Philippine/local sources
-
-Potential sources:
-
-- PSA for population, demographics, and density
-- PAGASA for rainfall, weather, and typhoon information
-- DOST hazard services for hazard/disaster information where available
-- DPWH for road and infrastructure datasets where available
-- LGU open data for road closures, flood advisories, and traffic advisories
-- PNP historical/public reports if available
-
-Assumption:
-
-```txt
-No widely available public real-time crime API is expected.
-```
-
-## Current architecture
-
-```txt
-React frontend
-  │
-  ├─ REST API calls
-  ▼
-Django REST Framework backend
-  │
-  ├─ Django session auth
-  ├─ CSRF protection
-  ├─ SQLite locally / PostgreSQL in Compose
-  ├─ Redis-backed cache and WebSocket channel layer
-  ├─ Celery worker for photo analysis
-  ├─ Celery Beat for stale-task recovery and media deletion
-  └─ OpenRouteService integration through backend
-```
-
-REST should handle:
-
-- authentication
-- registration/login/logout/me
-- route preview requests
-- saved routes
-- user reports CRUD
-- safety data CRUD/admin workflows
-
-WebSockets currently handle:
-
-- approved incident markers
-
-Route re-evaluation and emergency notifications remain future work.
-
-GraphQL is optional later. Use it only if the frontend needs flexible nested data in one request.
-
-OAuth 2.0 is optional later for Sign in with Google or similar providers.
-
-## MVP scope
-
-Smallest useful version:
-
-- Sign up and log in
-- Enter origin and destination
-- Request a walking route preview from the backend
-- Show distance and estimated duration
-- Display route geometry on a map
-- Use cautious/risk-aware wording
-- Keep OpenRouteService API key on the backend only
-- Handle validation errors clearly
-
-## Complex version
-
-Expanded version:
-
-- Full map UI with route overlays
-- Saved routes and favorite places
-- User-submitted reports
-- Moderator dashboard
-- Real-time approved-incident markers using WebSockets (implemented)
-- Weather-aware route warnings
-- Safety dataset overlays from OSM, LGU, PAGASA, DOST, DPWH, or PSA where available
-- Custom route scoring engine
-- Trip tracking
-- Emergency contacts
-- OAuth login
-- AI route assistant
-- AI report summaries
-- AI explanation of route scoring factors
-
-## AI feature plan
-
-Possible AI features:
-
-- route explanation in plain language
-- summary of distance, duration, and safety-related context
-- route comparison between fastest and cautious route options
-- user report summarization for moderators
-- trip summary after a completed route
-- voice-friendly navigation hints
-- commute pattern insights
-- suggested commonly used destinations
-- explanation of why a route is marked more cautious or less cautious
-
-AI should explain and summarize. It should not invent safety facts.
-
-## Build stages and branches
-
-### 1. `feature/session-auth`
-
-Status: finished/merged.
-
-Scope:
-
-- Django session auth endpoints
-- CSRF setup
-- register/login/logout/me
-
-### 2. `feature/frontend-auth`
-
-Status: finished/merged.
-
-Scope:
-
-- Auth API client
-- AuthProvider/useAuth
-- login/register pages
-- protected/guest-only routes
-- logout/session controls
-
-### 3. `feature/navigation-api`
-
-Status: implemented in the current worktree; not yet released.
-
-Scope:
-
-- navigation Django app
-- OpenRouteService settings
-- route preview serializer
-- routing provider service
-- route preview endpoint
-- route preview tests
-
-Implemented:
-
-```txt
-1. Route preview validation, OpenRouteService integration, and authenticated endpoint.
-2. Saved-route ownership isolation.
-3. Route context summary with source/update metadata and an explicit coverage note.
-4. Numeric safety score removed pending a defensible, evaluated model.
-```
-
-### 4. `feature/frontend-map`
-
-Scope:
-
-- map library
-- route input form
-- route preview UI
-- render route geometry
-
-### 5. `feature/safety-data-models`
-
-Scope:
-
-- public safety-related data models
-- user report models
-- source tracking
-- timestamp and confidence fields
-
-### 6. `feature/safety-data-import`
-
-Scope:
-
-- OSM/Overpass import
-- local dataset import
-- scheduled/manual refresh
-
-### 7. `feature/cautious-route-scoring`
-
-Scope:
-
-- scoring rules
-- route segment weighting
-- explainable score output
-
-### 8. `feature/trip-tracking`
-
-Scope:
-
-- active trip state
-- location updates
-- route progress
-
-### 9. `feature/emergency-contacts`
-
-Scope:
-
-- emergency contacts
-- quick contact actions
-- safety check-in flow
-
-## Possible screens
-
-- Landing page
-- Login/Register
-- Authenticated home
-- Route planner
-- Route preview details
-- Map view
-- Saved routes
-- User reports
-- Report submission form
-- Moderator dashboard
-- Safety data overlays
-- Trip tracking screen
-- AI route assistant
-- Settings
-
-## Development commands
-
-Backend:
-
-```bash
-cd backend
-source venv/bin/activate
-pip install -r requirements.txt
-python3 manage.py migrate
-python3 manage.py runserver 8004
-```
-
-Backend checks:
-
-```bash
-python3 manage.py check
-python3 manage.py test
-python3 manage.py makemigrations --check --dry-run
-```
-
-Frontend:
-
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-Frontend checks:
-
-```bash
-npm run lint
-npm run build
-```
-
-## Commit rules
-
-Keep commits separated by purpose.
-
-Examples:
-
-```txt
-docs: update project planning documentation
-feat(navigation): add routing provider service
-fix(navigation): correct route preview validation defaults
-test(navigation): add route preview API coverage
-```
-
-Do not commit:
-
-- `.env`
-- real API keys
-- unrelated work
-- empty placeholder files unless intentionally needed
-
-## Safety note
-
-Lock-Ad v3 should always communicate that route guidance is advisory. Crime, lighting, CCTV, weather, and hazard data can be incomplete, outdated, unavailable, or biased. The product should help users make more informed decisions, not guarantee personal safety.
+# Lock-Ad v3 Project Overview and Plan
+
+Lock-Ad v3 is a web application for previewing walking routes and presenting
+available safety-related context in the Philippines. It combines route
+geometry with mapped public signals, moderated community reports, and current
+weather information where available.
+
+Lock-Ad is advisory software. It does not guarantee a safe route, verify every
+reported condition, provide emergency response, or calculate a calibrated
+numeric safety score.
+
+## Documentation map
+
+- [User Guide](USER_GUIDE.md): current user workflows.
+- [System Architecture](../architecture/README.md): components and data flow.
+- [API Reference](API_REFERENCE.md): endpoint contract and permissions.
+- [Data Sources and Coverage](DATA_SOURCES_AND_COVERAGE.md): source provenance
+  and limitations.
+- [Backend Guide](BACKEND.md) and [Frontend Guide](FRONTEND.md): development
+  setup.
+- [Operations Guide](OPERATIONS.md): deployment, backup, and recovery.
+- [Privacy and AI](PRIVACY_AND_AI.md): report visibility and optional Gemini
+  processing.
+
+## Product language
+
+Prefer:
+
+- cautious route
+- risk-aware route
+- safety-related signals
+- route context or advisory
+
+Avoid claims such as guaranteed safe route, crime-free path, protected route,
+or secure navigation. The data does not justify those promises.
+
+## Technology and repository
+
+- Backend: Django, Django REST Framework, Django Channels, Celery.
+- Frontend: React, Vite, React Router, Leaflet.
+- Authentication: Django session cookies with CSRF protection.
+- Routing: OpenRouteService accessed by the backend.
+- Local database: SQLite. Docker Compose uses PostgreSQL.
+- Cache, channel layer, and task broker: Redis in Compose.
+- Background work: Celery worker for optional incident-photo analysis and
+  media maintenance.
+
+Repository areas:
+
+- backend/: Django project and domain apps.
+- frontend/: React web client.
+- docs/: product, API, data, setup, privacy, and operations references.
+- architecture/: system topology and architecture notes.
+
+## Implemented capabilities
+
+The current codebase includes:
+
+- Account registration, login, logout, current-user session, and CSRF token
+  endpoints.
+- Protected React routes and guest-only login/registration routes.
+- Walking-route preview through the backend, using the
+  foot-walking OpenRouteService profile.
+- Route distance, duration, GeoJSON geometry, and a coverage note with nearby
+  mapped-signal and approved-report summaries.
+- Rerouting requests that ask OpenRouteService to avoid areas around nearby
+  approved reports.
+- Saved-route API records with per-user ownership isolation.
+- Safety-signal API and a manual OpenStreetMap/Overpass import command.
+- Community incident submission, pending status, staff moderation, and
+  staff-only report-image access.
+- Authenticated WebSocket notifications when an incident becomes approved.
+- Open-Meteo current-weather endpoint and a travel advisory with a local
+  fallback; Gemini use is opt-in through backend flags.
+- Emergency-contact records scoped to the owner, with staff-only update and
+  deletion permissions.
+- Docker Compose services and operational support for PostgreSQL, Redis,
+  Django, Celery, and the frontend.
+
+This list describes backend capabilities and UI elements in the code; it does
+not mean every end-to-end screen is free of integration issues. See Known
+integration gaps below.
+
+## Backend domains
+
+- core: health and dependency-readiness endpoints.
+- accounts: session-authentication and user endpoints.
+- navigation: route preview and saved routes.
+- safety_data: signals, community reports, moderation, weather, and advisory.
+- emergency: stored emergency-contact records.
+
+The [API Reference](API_REFERENCE.md) is the canonical list of endpoints,
+request fields, permissions, status codes, and response shapes.
+
+## Current data boundaries
+
+- OpenRouteService calculates walking geometry and route estimates; it is not
+  a safety-data provider.
+- OpenStreetMap is used for map tiles and selected signals imported manually
+  through Overpass.
+- Open-Meteo provides current weather for the requested coordinates.
+- Community reports are user-submitted and moderator-reviewed; they are not
+  official police data.
+- PSGC is not integrated. It may support future administrative geography, but
+  it does not provide crime, lighting, CCTV, or incident data.
+- No public real-time crime feed is integrated or assumed.
+- Gemini features are disabled by default and must not be treated as a source
+  of factual safety determinations.
+
+See [Data Sources and Coverage](DATA_SOURCES_AND_COVERAGE.md) for coverage,
+freshness, provenance, and candidate sources.
+
+## Known integration gaps
+
+These are implementation findings from the current code revision and should be
+checked again when the related client work is changed:
+
+1. DRF list endpoints return a page object with a results array. Some frontend
+   consumers still expect plain arrays: map signals/incidents, saved routes,
+   and emergency contacts. These screens need response normalization and
+   pagination handling.
+2. The user response exposes is_staff, while the bottom navigation checks a
+   role property for the moderator link. The moderator page itself checks
+   is_staff, so the link visibility and route access can disagree.
+3. Emergency-contact creation shows a three-item limit in the browser, but
+   the API does not enforce the limit. Standard users can create/list/retrieve
+   their own contacts; API updates and deletion are staff-only.
+4. Route entry is coordinate-based; address search/geocoding is not part of
+   the current API flow.
+5. Map tracking-related state exists, but the web flow does not currently
+   start a user-visible active trip. Do not describe this as live trip
+   tracking.
+6. Emergency contacts are records only; no SOS message, call, location share,
+   or dispatch operation is implemented.
+7. Approved reports used for route avoidance have no age cutoff. Their
+   timestamps should be considered; this is not a validated or freshness-aware
+   risk model.
+
+These are follow-up engineering items, not alternative API contracts. Do not
+hide them by weakening the API's paginated response shape or by implying an
+unimplemented safety capability.
+
+## Roadmap
+
+### 1. Stabilize current API-to-UI contracts
+
+- Normalize paginated list responses at the API-client boundary or consumers.
+- Follow next pages where the UI needs complete lists.
+- Add frontend tests for map markers, saved routes, contacts, and staff
+  navigation using paginated response fixtures.
+- Align the moderator navigation check with the user field returned by the
+  backend.
+- Decide and document the intended owner-level edit/delete policy for
+  emergency contacts, then make the UI/API permissions agree.
+
+### 2. Validate safety-data coverage
+
+- Choose a small pilot area and verify imported records with local partners or
+  field observation.
+- Show source, timestamp, and coverage caveats wherever signals are displayed.
+- Define an operator-controlled OSM refresh process and failure monitoring.
+- Evaluate additional public/LGU datasets only after confirming licensing,
+  coverage, update cadence, and privacy implications.
+- Keep any future route score out of the product until its target, evidence,
+  calibration, bias review, and explanation can be defended.
+
+### 3. Improve route planning
+
+- Decide whether address/place search is required and select a geocoder only
+  after reviewing terms, attribution, rate limits, and Philippine coverage.
+- Improve route comparison and context presentation without promising safety.
+- Keep provider keys and provider-specific payloads on the backend.
+
+### 4. Define, then build trip tracking
+
+Before implementation, decide location permission timing, whether location
+leaves the device, user-controlled sharing, foreground/background behavior,
+retention and deletion, stop/arrival behavior, connectivity failure, and abuse
+controls. The React Native client may live in a separate repository; agree on
+an API contract that supports web and mobile without coupling the backend to a
+single client.
+
+### 5. Define emergency workflows separately
+
+Stored contacts alone are not an emergency feature. Before adding an SOS
+workflow, define exactly whether it calls, sends SMS, shares location, uses an
+external provider, or simply opens the device dialer. Obtain consent, model
+delivery failures, protect phone/location data, and clearly state that
+delivery is not guaranteed.
+
+### 6. Revisit optional AI only with explicit controls
+
+Keep Gemini disabled unless provider processing, data notices, cost/rate
+limits, retention, and fallbacks have been reviewed. Treat outputs as
+untrusted moderator or travel-context assistance, never an approval decision
+or safety fact.
+
+## Release and review gates
+
+Before calling a feature complete:
+
+- Its actual API contract and authorization are documented.
+- Frontend behavior matches success, empty, loading, validation, permission,
+  and provider-failure responses.
+- Tests cover the feature's important permissions and failure paths.
+- External data has a source, provenance, license/terms, and freshness story.
+- User-facing copy does not overstate certainty or emergency capability.
+- Secrets, session/CSRF behavior, media access, logging, and retention have
+  been reviewed for the changed data flow.
+
+## Local development
+
+Use the root [README](../README.md) for the quick start. See the
+[Backend Guide](BACKEND.md), [Frontend Guide](FRONTEND.md), and
+[Operations Guide](OPERATIONS.md) for detailed setup and commands.
