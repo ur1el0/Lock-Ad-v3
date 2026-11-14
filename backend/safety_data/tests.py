@@ -230,3 +230,79 @@ class SafetyAPITestCase(TestCase):
             'min_lng': '120.0', 'max_lng': '121.0'
         })
         self.assertEqual(len(response_empty.data['results']), 0)
+
+    def test_bounding_box_is_optional_when_no_bounds_are_provided(self):
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse('signal-list'))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertEqual(len(response.data['results']), 1)
+
+    def test_bounding_box_requires_all_coordinates_for_signals_and_incidents(self):
+        self.client.force_authenticate(user=self.user)
+
+        for url_name in ('signal-list', 'incident-list'):
+            with self.subTest(endpoint=url_name):
+                response = self.client.get(reverse(url_name), {
+                    'min_lat': '14.0',
+                })
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
+    def test_bounding_box_rejects_out_of_range_coordinates_for_both_endpoints(self):
+        self.client.force_authenticate(user=self.user)
+        params = {
+            'min_lat': '-91',
+            'max_lat': '90',
+            'min_lng': '-180',
+            'max_lng': '180',
+        }
+
+        for url_name in ('signal-list', 'incident-list'):
+            with self.subTest(endpoint=url_name):
+                response = self.client.get(reverse(url_name), params)
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn('min_lat', response.data)
+
+    def test_bounding_box_rejects_nonnumeric_coordinates_for_both_endpoints(self):
+        self.client.force_authenticate(user=self.user)
+        params = {
+            'min_lat': '14north',
+            'max_lat': '15',
+            'min_lng': '120',
+            'max_lng': '121',
+        }
+
+        for url_name in ('signal-list', 'incident-list'):
+            with self.subTest(endpoint=url_name):
+                response = self.client.get(reverse(url_name), params)
+
+                self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                self.assertIn('min_lat', response.data)
+
+    def test_bounding_box_rejects_reversed_ranges_for_both_endpoints(self):
+        self.client.force_authenticate(user=self.user)
+        invalid_ranges = (
+            ({
+                'min_lat': '15',
+                'max_lat': '14',
+                'min_lng': '120',
+                'max_lng': '121',
+            }, 'max_lat'),
+            ({
+                'min_lat': '14',
+                'max_lat': '15',
+                'min_lng': '121',
+                'max_lng': '120',
+            }, 'max_lng'),
+        )
+
+        for url_name in ('signal-list', 'incident-list'):
+            for params, error_field in invalid_ranges:
+                with self.subTest(endpoint=url_name, range=error_field):
+                    response = self.client.get(reverse(url_name), params)
+
+                    self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+                    self.assertIn(error_field, response.data)

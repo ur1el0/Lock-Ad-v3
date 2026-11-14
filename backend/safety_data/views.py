@@ -17,6 +17,7 @@ from rest_framework.views import APIView
 from safety_data.ai_service import get_travel_advisory
 from safety_data.models import IncidentReport, SafetySignal
 from safety_data.serializers import (
+    BoundingBoxQuerySerializer,
     IncidentReportSerializer,
     SafetySignalSerializer,
     TravelAdvisoryRequestSerializer,
@@ -29,6 +30,21 @@ logger = logging.getLogger(__name__)
 MANUAL_REVIEW_MESSAGE = (
     'Automated vision analysis unavailable. Manual review required.'
 )
+
+
+def filter_by_bounding_box(queryset, query_params):
+    serializer = BoundingBoxQuerySerializer(data=query_params)
+    serializer.is_valid(raise_exception=True)
+    bounds = serializer.validated_data
+    if not bounds:
+        return queryset
+
+    return queryset.filter(
+        latitude__gte=bounds['min_lat'],
+        latitude__lte=bounds['max_lat'],
+        longitude__gte=bounds['min_lng'],
+        longitude__lte=bounds['max_lng'],
+    )
 
 
 def enqueue_incident_image_analysis(report_id):
@@ -114,19 +130,7 @@ class SafetySignalViewSet(viewsets.ReadOnlyModelViewSet):
     
     def get_queryset(self):
         queryset = SafetySignal.objects.all().order_by('created_at', 'pk')
-        min_lat = self.request.query_params.get('min_lat')
-        max_lat = self.request.query_params.get('max_lat')
-        min_lng = self.request.query_params.get('min_lng')
-        max_lng = self.request.query_params.get('max_lng')
-
-        if min_lat and max_lat and min_lng and max_lng:
-            queryset = queryset.filter(
-                latitude__gte=min_lat,
-                latitude__lte=max_lat,
-                longitude__gte=min_lng,
-                longitude__lte=max_lng
-            )
-        return queryset
+        return filter_by_bounding_box(queryset, self.request.query_params)
 
 class IncidentReportViewSet(viewsets.ModelViewSet):
     serializer_class = IncidentReportSerializer
@@ -157,19 +161,7 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
                 Q(user=user) | Q(status='APPROVED')
             ).order_by('-reported_at')
 
-        min_lat = self.request.query_params.get('min_lat')
-        max_lat = self.request.query_params.get('max_lat')
-        min_lng = self.request.query_params.get('min_lng')
-        max_lng = self.request.query_params.get('max_lng')
-
-        if min_lat and max_lat and min_lng and max_lng:
-            queryset = queryset.filter(
-                latitude__gte=min_lat,  
-                latitude__lte=max_lat,
-                longitude__gte=min_lng,
-                longitude__lte=max_lng
-            )
-        return queryset
+        return filter_by_bounding_box(queryset, self.request.query_params)
 
     def perform_create(self, serializer):
         # Explicitly override client payload to force safe default states
