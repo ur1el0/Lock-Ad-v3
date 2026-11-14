@@ -87,14 +87,19 @@ def is_point_near_route(point_lat, point_lon, route_coords, threshold=50):
 
     return False
 
-def calculate_route_score(geometry):
-    """
-    Evaluates a route GeoJSON LineString against nearby infrastructure and incidents.
-    Returns a dictionary with 'score' and 'advisories'.
-    """
+def calculate_route_context(geometry):
+    """Summarize mapped signals and approved reports near a route."""
     coordinates = geometry.get("coordinates", [])
+    context = {
+        "signals": [],
+        "incident_reports": [],
+        "coverage_note": (
+            "Mapped data may be incomplete. This information is not a safety rating, "
+            "and listed conditions have not been live-verified."
+        ),
+    }
     if not coordinates:
-        return {"score": 70, "advisories": ["No geometry provided to calculate score."]}
+        return context
 
     # 1. Calculate bounding box of the route to filter database queries
     min_lng, max_lng, min_lat, max_lat = route_bounding_box(coordinates)
@@ -111,21 +116,7 @@ def calculate_route_score(geometry):
         longitude__gte=min_lng, longitude__lte=max_lng
     )
 
-    # 3. Scoring Engine
-    baseline_score = 70
-    score = baseline_score
-    advisories = []
-    
-    # Counts
-    counts = {
-        'CCTV': 0,
-        'LIGHT': 0,
-        'POLICE': 0,
-        'MEDICAL': 0,
-        'INCIDENT': 0
-    }
-
-    # Evaluate signals
+    signal_summaries = {}
     for signal in nearby_signals:
         if is_point_near_route(
             signal.latitude,
@@ -133,50 +124,53 @@ def calculate_route_score(geometry):
             coordinates,
             threshold=SIGNAL_ROUTE_DISTANCE_METERS,
         ):
-            counts[signal.signal_type] += 1
-            if signal.signal_type == 'CCTV':
-                score += 5
-            elif signal.signal_type == 'LIGHT':
-                score += 1
-            elif signal.signal_type == 'POLICE':
-                score += 10
-            elif signal.signal_type == 'MEDICAL':
-                score += 5
+            key = (signal.signal_type, signal.source)
+            summary = signal_summaries.setdefault(key, {
+                "signal_type": signal.signal_type,
+                "source": signal.source,
+                "count": 0,
+                "last_updated_at": signal.updated_at,
+            })
+            summary["count"] += 1
+            summary["last_updated_at"] = max(
+                summary["last_updated_at"], signal.updated_at
+            )
 
-    # Evaluate active incidents
+    incident_summaries = {}
     for incident in nearby_incidents:
-        # Check within 100 meters for incidents (a slightly wider radius for warnings)
         if is_point_near_route(
             incident.latitude,
             incident.longitude,
             coordinates,
             threshold=INCIDENT_ROUTE_DISTANCE_METERS,
         ):
-            counts['INCIDENT'] += 1
-            score -= 15
+            summary = incident_summaries.setdefault(incident.incident_type, {
+                "incident_type": incident.incident_type,
+                "count": 0,
+                "latest_reported_at": incident.reported_at,
+            })
+            summary["count"] += 1
+            summary["latest_reported_at"] = max(
+                summary["latest_reported_at"], incident.reported_at
+            )
 
-    # Cap score
-    score = max(0, min(100, score))
-
-    # 4. Generate Advisories
-    if counts['LIGHT'] > 0:
-        advisories.append(f"Passes near {counts['LIGHT']} street lights.")
-    if counts['CCTV'] > 0:
-        advisories.append(f"Passes near {counts['CCTV']} CCTV cameras.")
-    if counts['POLICE'] > 0:
-        advisories.append(f"Passes near {counts['POLICE']} police stations.")
-    if counts['MEDICAL'] > 0:
-        advisories.append(f"Passes near {counts['MEDICAL']} medical facilities.")
-    
-    if counts['INCIDENT'] > 0:
-        advisories.append(
-            f"WARNING: Route passes within 100m of {counts['INCIDENT']} moderator-approved incident reports."
+    context["signals"] = [
+        {
+            **summary,
+            "last_updated_at": summary["last_updated_at"].isoformat(),
+        }
+        for summary in sorted(
+            signal_summaries.values(),
+            key=lambda item: (item["signal_type"], item["source"]),
         )
-        
-    if score == baseline_score and not advisories:
-        advisories.append("Route has no known safety signals or incidents nearby.")
-        
-    return {
-        "score": score,
-        "advisories": advisories
-    }
+    ]
+    context["incident_reports"] = [
+        {
+            **summary,
+            "latest_reported_at": summary["latest_reported_at"].isoformat(),
+        }
+        for summary in sorted(
+            incident_summaries.values(), key=lambda item: item["incident_type"]
+        )
+    ]
+    return context

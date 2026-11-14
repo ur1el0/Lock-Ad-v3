@@ -90,11 +90,11 @@ class SafetyAPITestCase(TestCase):
             'min_lat': '14.0', 'max_lat': '15.0',
             'min_lng': '120.0', 'max_lng': '121.0'
         })
-        self.assertEqual(len(response.data), 1)
+        self.assertEqual(len(response.data['results']), 1)
 
         # Bounding box NOT containing the signal
         response_empty = self.client.get(url, {
             'min_lat': '15.0', 'max_lat': '16.0',
             'min_lng': '120.0', 'max_lng': '121.0'
         })
-        self.assertEqual(len(response_empty.data), 0)
+        self.assertEqual(len(response_empty.data['results']), 0)

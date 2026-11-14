@@ -52,12 +52,21 @@ export const getWeather = async (lat, lng) => {
 }
 
 export const getAiAdvisory = async (routeData, weatherData) => {
+    if (
+        routeData?.distance_meters == null ||
+        routeData?.duration_seconds == null ||
+        weatherData?.weather_code == null ||
+        weatherData?.temperature == null
+    ) {
+        throw new Error('Route and current weather data are required for an advisory.');
+    }
+
     const csrfToken = await getCsrfToken()
-    const data= {
-        distance: routeData?.distance_meters || 0,
-        duration: routeData?.duration_seconds || 0,
-        weather_code: weatherData?.weathercode || 0,
-        temperature: weatherData?.temperature || 0
+    const data = {
+        distance: routeData.distance_meters,
+        duration: routeData.duration_seconds,
+        weather_code: weatherData.weather_code,
+        temperature: weatherData.temperature,
     }
     return await client('/api/safety/advisory/', {
         method: 'POST',

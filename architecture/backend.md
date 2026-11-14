@@ -12,7 +12,7 @@ The project config is located under `backend/backend/`. Currently, the settings 
 
 - `core`: Shared core utility configurations and health checks.
 - `accounts`: Complete user registration, login, logout, and session me-details.
-- `navigation`: Route request validation, OpenRouteService integration, saved routes, and route scoring.
+- `navigation`: Route request validation, OpenRouteService integration, saved routes, and mapped route-context summaries.
 - `safety_data`: Incident reports, safety signals, image review, and authenticated incident WebSockets.
 - `emergency`: User-owned emergency contacts.
 
@@ -44,7 +44,7 @@ python manage.py test
 
 ## Routing and safety data flow
 
-`POST /api/navigation/routes/preview/` validates origin, destination, and the supported `foot-walking` profile with `RoutePreviewRequestSerializer`. `navigation/services.py` requests route geometry from OpenRouteService, considers moderator-approved incidents near the initial route for avoidance, and delegates the final route score to `navigation/scoring.py`.
+`POST /api/navigation/routes/preview/` validates origin, destination, and the supported `foot-walking` profile with `RoutePreviewRequestSerializer`. `navigation/services.py` requests route geometry from OpenRouteService, considers moderator-approved incidents near the initial route for avoidance, and returns structured mapped route context from `navigation/scoring.py`. The context includes counts grouped by signal type and source, record-update dates, nearby approved-report dates, and a coverage notice; it is not a calibrated safety score. Approved-report avoidance still has no freshness window, so report age must be considered before relying on that rerouting behavior.
 
 Incident and signal endpoints are routed through `safety_data/urls.py`. Serializers validate and shape their data; viewsets enforce permissions and queryset visibility. Image-backed reports are analyzed through `safety_data/ai_service.py`, and moderation status changes may be broadcast by `safety_data/signals.py` to authenticated Channels consumers.
 

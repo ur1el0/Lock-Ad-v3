@@ -6,7 +6,7 @@ import {
     Cloud, Sun, CloudRain, CloudLightning, Sparkles, Shield, 
     Star, MapPin, PersonStanding, AlertTriangle 
 } from 'lucide-react';
-import { useRoute } from "../context/RouteContext";
+import { useRoute } from "../context/useRoute";
 
 export function RoutePlannerPage() {
     const { 
@@ -114,8 +114,7 @@ export function RoutePlannerPage() {
                 distance: data.distance_meters,
                 duration: data.duration_seconds,
                 provider: data.provider,
-                score: data.safety_score,
-                advisories: data.advisories
+                routeContext: data.route_context ?? null,
             });
         } catch (error) {
             if (error instanceof APIError) {
@@ -130,20 +129,18 @@ export function RoutePlannerPage() {
 
     const requestAiAdvisory = async () => {
         if (!routeStats) return;
+        if (!weather) {
+            alert('Current weather data is not available for this starting point yet.');
+            return;
+        }
         setFetchingAi(true);
         setAiAdvisory(null);
 
         try {
             const result = await getAiAdvisory({
-                origin_lat: parseFloat(originLat),
-                origin_lng: parseFloat(originLng),
-                dest_lat: parseFloat(destLat),
-                dest_lng: parseFloat(destLng),
                 distance_meters: routeStats.distance,
                 duration_seconds: routeStats.duration,
-                profile: profile,
-                weather_context: weather
-            });
+            }, weather);
             setAiAdvisory(result);
         } catch (error) {
             console.error(error);
@@ -290,18 +287,37 @@ export function RoutePlannerPage() {
                             <span>Route Details</span>
                         </div>
                         
-                        <div className="grid grid-cols-2 gap-3">
+                        <div className="grid grid-cols-1 gap-3">
                             <div className="bg-muted/50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
                                 <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Distance</span>
                                 <span className="text-lg font-black text-foreground">{(routeStats.distance / 1000).toFixed(2)} km</span>
                             </div>
-                            <div className="bg-muted/50 p-3 rounded-2xl flex flex-col items-center justify-center text-center">
-                                <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider mb-1">Safety Score</span>
-                                <span className={`text-lg font-black ${routeStats.score >= 80 ? 'text-emerald-500' : routeStats.score >= 50 ? 'text-amber-500' : 'text-rose-500'}`}>
-                                    {routeStats.score}/100
-                                </span>
-                            </div>
                         </div>
+
+                        <section aria-labelledby="route-context-title" className="space-y-2">
+                            <h2 id="route-context-title" className="text-sm font-bold text-foreground m-0">Mapped route context</h2>
+                            <p className="text-xs text-muted-foreground m-0">
+                                {routeStats.routeContext?.coverage_note || 'Route context is unavailable for this preview.'}
+                            </p>
+                            {routeStats.routeContext?.signals?.length || routeStats.routeContext?.incident_reports?.length ? (
+                                <ul className="space-y-2 pl-5 text-xs text-muted-foreground">
+                                    {routeStats.routeContext.signals.map((signal) => (
+                                        <li key={`${signal.signal_type}-${signal.source}`}>
+                                            {signal.signal_type.toLowerCase()} mapped records: {signal.count} (source: {signal.source}; records updated through {new Date(signal.last_updated_at).toLocaleDateString()}).
+                                        </li>
+                                    ))}
+                                    {routeStats.routeContext.incident_reports.map((report) => (
+                                        <li key={report.incident_type}>
+                                            Approved {report.incident_type.toLowerCase()} reports nearby: {report.count} (most recently reported {new Date(report.latest_reported_at).toLocaleDateString()}).
+                                        </li>
+                                    ))}
+                                </ul>
+                            ) : (
+                                <p className="text-xs text-muted-foreground m-0">
+                                    No mapped signals or approved reports were found near this route. Map coverage may be incomplete.
+                                </p>
+                            )}
+                        </section>
 
                         <div className="flex gap-2">
                             <button 
@@ -317,7 +333,7 @@ export function RoutePlannerPage() {
                                 className="flex-[2] flex items-center justify-center gap-2 py-3 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-xs font-bold rounded-xl hover:opacity-90 transition-opacity shadow-md disabled:opacity-50"
                             >
                                 <Sparkles className="w-4 h-4" />
-                                {fetchingAi ? 'Analyzing...' : 'Get AI Advisory'}
+                                {fetchingAi ? 'Preparing...' : 'Get trip advisory'}
                             </button>
                         </div>
 
@@ -325,7 +341,7 @@ export function RoutePlannerPage() {
                         {aiAdvisory && (
                             <div className="mt-4 p-4 bg-violet-500/10 border border-violet-500/20 rounded-2xl animate-in fade-in">
                                 <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400 font-black text-sm mb-2">
-                                    <Shield className="w-4 h-4" /> AI Safety Advisory
+                                    <Shield className="w-4 h-4" /> Trip Advisory
                                 </div>
                                 <div className="prose prose-sm prose-violet dark:prose-invert max-w-none text-sm">
                                     {aiAdvisory.advisory}
