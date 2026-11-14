@@ -7,7 +7,7 @@ from django.conf import settings
 from safety_data.models import IncidentReport
 from .scoring import (
     INCIDENT_ROUTE_DISTANCE_METERS,
-    calculate_route_score,
+    calculate_route_context,
     is_point_near_route,
     route_bounding_box,
 )
@@ -129,7 +129,7 @@ def _avoidance_options(incidents):
 
 
 def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walking") -> dict:
-    """Fetch a route, avoid nearby approved reports, then score the final geometry."""
+    """Fetch a route, avoid nearby approved reports, and summarize route context."""
     api_key = get_openrouteservice_api_key()
     url = f"https://api.openrouteservice.org/v2/directions/{profile}/geojson"
     headers = {
@@ -180,13 +180,12 @@ def get_route_preview(origin: dict, destination: dict, profile: str = "foot-walk
     except (KeyError, TypeError, ValueError, OverflowError):
         raise RoutingProviderError("Routing provider returned invalid route details.") from None
 
-    score_data = calculate_route_score(geometry)
+    route_context = calculate_route_context(geometry)
     return {
         "distance_meters": distance_meters,
         "duration_seconds": duration_seconds,
         "geometry": geometry,
         "provider": "openrouteservice",
         "profile": profile,
-        "safety_score": score_data["score"],
-        "advisories": score_data["advisories"],
+        "route_context": route_context,
     }

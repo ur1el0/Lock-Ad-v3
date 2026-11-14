@@ -7,6 +7,7 @@ Central documentation for Lock-Ad v3.
 - [Project README and Plan](PROJECT_README.md)
 - [Backend Guide](BACKEND.md)
 - [Frontend Guide](FRONTEND.md)
+- [Privacy and AI Data Flows](PRIVACY_AND_AI.md)
 - [Conversation / Project Context Export](CONVERSATION_EXPORT.md)
 
 ## Current project focus

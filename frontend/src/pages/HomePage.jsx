@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "../hooks/useAuth";
-import { useRoute } from "../context/RouteContext";
+import { useRoute } from "../context/useRoute";
 import { Map } from "../components/Map";
 import { LogOut, User } from 'lucide-react';
 
