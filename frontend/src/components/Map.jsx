@@ -3,6 +3,11 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { fetchSafetySignals, fetchIncidents } from '../api/safety'
 import { ReportModal } from './ReportModal'
+import {
+    createIncidentPopup,
+    createSafetySignalPopup,
+    MAP_DATA_COVERAGE_NOTICE,
+} from './mapPopups'
 import { Shield } from "lucide-react";
 
 delete L.Icon.Default.prototype._getIconUrl
@@ -95,7 +100,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                     .filter(s => activeFilters.signals[s.signal_type])
                     .forEach(signal => {
                         const marker = L.marker([signal.latitude, signal.longitude]);
-                        marker.bindPopup(`<b>${signal.name}</b><br/>${signal.signal_type.replace('_', ' ')}`);
+                        marker.bindPopup(createSafetySignalPopup(signal));
                         markersLayerRef.current.addLayer(marker);
                     });
 
@@ -103,7 +108,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                     .filter(i => activeFilters.incidents[i.incident_type])
                     .forEach(incident => {
                         const marker = L.marker([incident.latitude, incident.longitude]);
-                        marker.bindPopup(`<b>${incident.incident_type}</b><br/>Status: ${incident.status}`);
+                        marker.bindPopup(createIncidentPopup(incident));
                         markersLayerRef.current.addLayer(marker);
                     });
             }
@@ -300,7 +305,7 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                 // Add the new marker to the map instantly using Leaflet
                 if (markersLayerRef.current) {
                     const marker = L.marker([newIncident.latitude, newIncident.longitude])
-                    marker.bindPopup(`<b>${newIncident.incident_type}</b><br/>Status: ${newIncident.status}`)
+                    marker.bindPopup(createIncidentPopup(newIncident))
                     markersLayerRef.current.addLayer(marker)
                 }
             }
@@ -330,6 +335,18 @@ export function Map({ routeGeometry, onSetDestination, isTracking, destination, 
                 ref={mapContainerRef}
                 className="w-full h-full rounded-none"
             />
+
+            <aside
+                aria-labelledby="map-data-limits-title"
+                className="absolute bottom-4 left-4 z-[900] w-[calc(100%-2rem)] max-w-sm rounded-xl border border-border bg-background/95 p-3 text-foreground shadow-lg backdrop-blur-sm"
+            >
+                <h2 id="map-data-limits-title" className="mb-1 text-xs font-bold">
+                    Map data limitations
+                </h2>
+                <p className="m-0 text-xs leading-relaxed">
+                    {MAP_DATA_COVERAGE_NOTICE}
+                </p>
+            </aside>
 
             {/* ONLY ADMINS SEE FILTERS */}
             {!isTracking && user?.is_staff && (

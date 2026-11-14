@@ -39,6 +39,12 @@ The query is limited to nodes and selected tags. It does not enumerate every
 camera, light, road, police facility, or medical facility in a jurisdiction.
 Surveyed completeness is not known.
 
+Map marker popups show the recorded source and Lock-Ad's record-update time.
+That timestamp does not say when the real-world feature was last present,
+working, or inspected. The map also displays a coverage warning; missing
+markers must not be interpreted as evidence that an area is safe or that a
+service is absent.
+
 ## Community reports and moderation
 
 Reports are created as PENDING and tied to the reporter. Staff can inspect all

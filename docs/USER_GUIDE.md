@@ -59,8 +59,10 @@ personal-safety advice.
 
 The map displays imported public-place signals and approved community reports
 within the visible area when records are available. Coverage and freshness
-vary; an empty map does not mean the area has no signals or reports. Check the
-visible area and map filters, and see
+vary. Open a marker to see its recorded source and the last update or report
+time. An update time is not proof that a feature was recently inspected, and a
+community report is not independently verified. The map also explains these
+limits; a missing marker does not mean the area has no signals or reports. See
 [Data Sources and Coverage](DATA_SOURCES_AND_COVERAGE.md).
 
 If the report form is available from the map, select the location, choose a

@@ -117,8 +117,9 @@ GET /api/safety/signals/ requires authentication. The response is paginated.
 Optional bounding-box filtering uses all four query parameters together:
 min_lat, max_lat, min_lng, and max_lng. Each result contains the model fields:
 id, source, signal_type, name, latitude, longitude, tags, created_at, and
-updated_at. Current source values are OSM, LGU, and PSA; signal types are
-CCTV, LIGHT, POLICE, and MEDICAL.
+updated_at. `updated_at` indicates when the record was last saved in Lock-Ad;
+it is not the source's inspection or verification time. Current source values
+are OSM, LGU, and PSA; signal types are CCTV, LIGHT, POLICE, and MEDICAL.
 
 ### Incident reports
 

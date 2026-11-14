@@ -144,7 +144,8 @@ Do not imply an unimplemented safety capability.
 
 - Choose a small pilot area and verify imported records with local partners or
   field observation.
-- Show source, timestamp, and coverage caveats wherever signals are displayed.
+- Map markers and route previews show available source/timestamp context and
+  coverage caveats; field validation and surveyed completeness are still open.
 - Define an operator-controlled OSM refresh process and failure monitoring.
 - Evaluate additional public/LGU datasets only after confirming licensing,
   coverage, update cadence, and privacy implications.
