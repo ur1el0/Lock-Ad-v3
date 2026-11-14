@@ -1,9 +1,10 @@
+import math
 import requests
 
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from PIL import Image, UnidentifiedImageError
-from rest_framework import permissions, viewsets
+from rest_framework import permissions, status, viewsets
 from rest_framework.decorators import api_view, permission_classes, throttle_classes
 from rest_framework.permissions import AllowAny
 from rest_framework.response import Response
@@ -151,6 +152,24 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
             report.ai_analysis = analysis
             report.save(update_fields=['ai_analysis'])
 
+def weather_condition_from_code(weather_code):
+    if weather_code == 0:
+        return 'Clear sky'
+    if 1 <= weather_code <= 3:
+        return 'Cloudy'
+    if weather_code in (45, 48):
+        return 'Fog'
+    if 51 <= weather_code <= 67:
+        return 'Rain'
+    if 71 <= weather_code <= 77 or weather_code in (85, 86):
+        return 'Snow'
+    if 80 <= weather_code <= 82:
+        return 'Rain showers'
+    if 95 <= weather_code <= 99:
+        return 'Thunderstorm'
+    return 'Unknown'
+
+
 @api_view(['GET'])
 @permission_classes([AllowAny])
 def get_weather(request):
@@ -174,9 +193,48 @@ def get_weather(request):
         )
         response.raise_for_status()
         data = response.json()
-        return Response(data.get('current_weather', {}))
-    except requests.RequestException:
-        return Response({'error': 'Failed to fetch weather data' }, status=500)
+        if not isinstance(data, dict):
+            return Response(
+                {'error': 'Weather provider returned invalid data.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        current_weather = data.get('current_weather')
+        if not isinstance(current_weather, dict):
+            return Response(
+                {'error': 'Weather provider returned invalid data.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        raw_temperature = current_weather.get('temperature')
+        weather_code = current_weather.get('weathercode')
+        try:
+            temperature = float(raw_temperature)
+        except (TypeError, ValueError):
+            return Response(
+                {'error': 'Weather provider returned invalid data.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+        if (
+            not math.isfinite(temperature)
+            or isinstance(weather_code, bool)
+            or not isinstance(weather_code, int)
+            or not 0 <= weather_code <= 99
+        ):
+            return Response(
+                {'error': 'Weather provider returned invalid data.'},
+                status=status.HTTP_502_BAD_GATEWAY,
+            )
+
+        return Response({
+            'temperature': temperature,
+            'weather_code': weather_code,
+            'condition': weather_condition_from_code(weather_code),
+        })
+    except (requests.RequestException, ValueError):
+        return Response(
+            {'error': 'Failed to fetch weather data.'},
+            status=status.HTTP_502_BAD_GATEWAY,
+        )
 
 @api_view(['POST'])
 @permission_classes([AllowAny])
