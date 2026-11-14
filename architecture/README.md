@@ -41,7 +41,7 @@ graph TD
 ## Architectural Principles
 
 1. **Separation of Concerns**: Backend business logic is split into standalone Django applications (`accounts`, `navigation`, `core`, `safety`). The frontend interacts with these cleanly via JSON API endpoints.
-2. **Backend-Heavy Routing**: All complex routing calculations, API key access, and safety weight scores are processed on the backend. The frontend remains thin and presentational.
+2. **Backend-Heavy Routing**: Route-provider access, API keys, and route-context aggregation stay on the backend. The frontend presents mapped context without claiming a calibrated safety score.
 3. **Session-Based State**: User sessions are persisted via standard secure Django session cookies instead of local state storage, protecting against XSS token extraction.
 4. **Advisory Framing**: System interfaces and data pipelines are built to communicate *cautious advice* rather than absolute safety guarantees. 
 

@@ -7,5 +7,5 @@ __pycache__
 !.agents/
 .agents/*
 !.agents/AGENTS.md
-context
+/context/
 *.sqlite
