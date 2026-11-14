@@ -71,6 +71,7 @@ core        shared/basic API endpoints
 accounts    session authentication endpoints
 navigation  route preview, provider integration, saved routes, and route context
 safety_data incident reports, safety signals, and overlays
+emergency   user-owned emergency contact records
 ```
 
 ## Endpoints
@@ -114,6 +115,10 @@ backup, restore, and media-retention guidance, and [Report Privacy and AI
 Processing](PRIVACY_AND_AI.md) for the report data-flow and provider checklist.
 
 ## Authentication flow
+
+The [API Reference](API_REFERENCE.md) is the canonical contract for navigation,
+safety, and emergency endpoints, including permissions and paginated response
+shapes.
 
 The frontend uses Django session authentication.
 
