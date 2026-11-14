@@ -39,8 +39,8 @@ class AiPrivacyTests(TestCase):
         Image.new('RGB', (2, 2), color='red').save(image_data, format='PNG')
         return image_data.getvalue()
 
-    @patch('safety_data.views.analyze_incident_image')
-    def test_image_upload_is_stored_without_calling_gemini_when_disabled(self, analyze):
+    @patch('safety_data.views.analyze_incident_image_task.delay')
+    def test_image_upload_is_stored_without_queueing_analysis_when_disabled(self, enqueue):
         from django.core.files.uploadedfile import SimpleUploadedFile
 
         upload = SimpleUploadedFile(
@@ -59,7 +59,7 @@ class AiPrivacyTests(TestCase):
         )
 
         self.assertEqual(response.status_code, 201, response.data)
-        analyze.assert_not_called()
+        enqueue.assert_not_called()
         report = IncidentReport.objects.get()
         self.assertTrue(report.image)
         self.assertFalse(report.ai_analysis)

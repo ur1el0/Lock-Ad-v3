@@ -1,11 +1,18 @@
-from rest_framework import status
-from django.test import TestCase
 from decimal import Decimal
+from io import BytesIO
+from tempfile import TemporaryDirectory
+from unittest.mock import patch
+
 from django.contrib.auth.models import User
+from django.core.files.uploadedfile import SimpleUploadedFile
+from django.test import TestCase, override_settings
 from django.utils import timezone
-from safety_data.models import IncidentReport, SafetySignal
-from rest_framework.test import APIClient
 from django.urls import reverse
+from PIL import Image
+from rest_framework import status
+from rest_framework.test import APIClient
+
+from safety_data.models import IncidentReport, SafetySignal
 
 # Create your tests here.
 
@@ -81,6 +88,131 @@ class SafetyAPITestCase(TestCase):
         response = self.client.post(url, data)
         self.assertEqual(response.status_code, status.HTTP_201_CREATED)
         self.assertEqual(IncidentReport.objects.first().user, self.user)
+        self.assertEqual(IncidentReport.objects.first().analysis_status, 'NOT_REQUESTED')
+
+    def test_uncomputed_incident_confidence_is_not_exposed_by_the_api(self):
+        report = IncidentReport.objects.create(
+            user=self.user,
+            incident_type='HAZARD',
+            latitude='14.6',
+            longitude='121.0',
+        )
+        self.client.force_authenticate(user=self.user)
+
+        response = self.client.get(reverse('incident-detail', args=[report.pk]))
+
+        self.assertEqual(response.status_code, status.HTTP_200_OK)
+        self.assertNotIn('confidence_score', response.data)
+
+    @override_settings(
+        GEMINI_API_ENABLED=True,
+        GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED=True,
+    )
+    def test_photo_report_is_queued_after_commit(self):
+        image_bytes = BytesIO()
+        Image.new('RGB', (2, 2), color='red').save(image_bytes, format='PNG')
+        upload = SimpleUploadedFile(
+            'evidence.png',
+            image_bytes.getvalue(),
+            content_type='image/png',
+        )
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            'incident_type': 'HAZARD',
+            'description': 'A damaged sidewalk',
+            'latitude': '14.6',
+            'longitude': '121.0',
+            'image': upload,
+        }
+
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                with patch('safety_data.views.analyze_incident_image_task.delay') as enqueue:
+                    with self.captureOnCommitCallbacks(execute=True):
+                        response = self.client.post(
+                            reverse('incident-list'),
+                            payload,
+                            format='multipart',
+                        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        report = IncidentReport.objects.get()
+        self.assertEqual(report.analysis_status, 'PENDING')
+        enqueue.assert_called_once_with(report.pk)
+        self.assertNotIn('analysis_status', response.data)
+
+    @override_settings(
+        GEMINI_API_ENABLED=True,
+        GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED=True,
+    )
+    def test_photo_report_is_kept_for_manual_review_if_queue_is_unavailable(self):
+        image_bytes = BytesIO()
+        Image.new('RGB', (2, 2), color='red').save(image_bytes, format='PNG')
+        upload = SimpleUploadedFile(
+            'evidence.png',
+            image_bytes.getvalue(),
+            content_type='image/png',
+        )
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            'incident_type': 'HAZARD',
+            'latitude': '14.6',
+            'longitude': '121.0',
+            'image': upload,
+        }
+
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                with patch(
+                    'safety_data.views.analyze_incident_image_task.delay',
+                    side_effect=ConnectionError('Redis unavailable'),
+                ):
+                    with self.captureOnCommitCallbacks(execute=True):
+                        response = self.client.post(
+                            reverse('incident-list'),
+                            payload,
+                            format='multipart',
+                        )
+
+        report = IncidentReport.objects.get()
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(report.analysis_status, 'FAILED')
+        self.assertIn('Manual review required', report.ai_analysis)
+
+    @override_settings(GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED=False)
+    def test_photo_report_is_not_sent_to_gemini_when_analysis_is_disabled(self):
+        image_bytes = BytesIO()
+        Image.new('RGB', (2, 2), color='yellow').save(image_bytes, format='PNG')
+        upload = SimpleUploadedFile(
+            'evidence.png',
+            image_bytes.getvalue(),
+            content_type='image/png',
+        )
+        self.client.force_authenticate(user=self.user)
+        payload = {
+            'incident_type': 'HAZARD',
+            'description': 'A damaged sidewalk',
+            'latitude': '14.6',
+            'longitude': '121.0',
+            'image': upload,
+        }
+
+        with TemporaryDirectory() as media_root:
+            with override_settings(MEDIA_ROOT=media_root):
+                with patch(
+                    'safety_data.views.analyze_incident_image_task.delay'
+                ) as enqueue:
+                    with self.captureOnCommitCallbacks(execute=True):
+                        response = self.client.post(
+                            reverse('incident-list'),
+                            payload,
+                            format='multipart',
+                        )
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        report = IncidentReport.objects.get()
+        self.assertEqual(report.analysis_status, 'NOT_REQUESTED')
+        enqueue.assert_not_called()
 
     def test_bounding_box_filtering(self):
         self.client.force_authenticate(user=self.user)

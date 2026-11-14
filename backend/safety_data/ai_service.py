@@ -5,6 +5,15 @@ from PIL import Image
 
 logger = logging.getLogger(__name__)
 
+
+class IncidentImageAnalysisError(Exception):
+    """An image-analysis failure with retry guidance for the task worker."""
+
+    def __init__(self, message, *, retryable=True):
+        super().__init__(message)
+        self.retryable = retryable
+
+
 def get_travel_advisory(distance, duration, weather_code, temperature):
     """
     Calls Google Gemini API for a smart route advisory.
@@ -72,16 +81,22 @@ def analyze_incident_image(image_file, incident_type: str, description: str = ""
     """
     Summarizes visible evidence and text for a human moderator.
     """
-    if not (
-        getattr(settings, 'GEMINI_API_ENABLED', False)
-        and getattr(settings, 'GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED', False)
+    if (
+        not getattr(settings, 'GEMINI_API_ENABLED', False)
+        or not getattr(settings, 'GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED', False)
     ):
-        return "Automated vision analysis is disabled. Manual review required."
+        raise IncidentImageAnalysisError(
+            'Gemini incident-image analysis is disabled.',
+            retryable=False,
+        )
 
     try:
         api_key = getattr(settings, 'GEMINI_API_KEY', None)
         if not api_key:
-            raise ValueError("Gemini API Key is missing")
+            raise IncidentImageAnalysisError(
+                'Gemini API key is not configured.',
+                retryable=False,
+            )
 
         client = genai.Client(
             api_key=api_key,
@@ -111,10 +126,14 @@ def analyze_incident_image(image_file, incident_type: str, description: str = ""
             )
 
         result = (response.text or '').strip()
-        return result or "Automated vision analysis unavailable. Manual review required."
+        if not result:
+            raise IncidentImageAnalysisError('Gemini returned an empty analysis.')
+        return result
+    except IncidentImageAnalysisError:
+        raise
     except Exception as e:
         logger.warning(
             "Gemini image analysis failed (%s); manual review is required.",
             type(e).__name__,
         )
-        return "Automated vision analysis unavailable. Manual review required."
+        raise IncidentImageAnalysisError('Gemini image analysis failed.') from e
