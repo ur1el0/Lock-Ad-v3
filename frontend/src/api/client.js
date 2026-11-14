@@ -123,3 +123,49 @@ export async function client(path, options = {}) {
     }
     return data
 }
+
+function normalizeApiPath(path) {
+    let url;
+    try {
+        url = new URL(path, window.location.origin);
+    } catch {
+        throw new Error('The API returned an invalid pagination link.');
+    }
+
+    if (!url.pathname.startsWith('/api/')) {
+        throw new Error('The API returned a pagination link outside the API.');
+    }
+
+    return url.pathname + url.search;
+}
+
+export async function getAllPages(firstPath) {
+    const results = [];
+    const visitedPaths = new Set();
+    let nextPath = firstPath;
+
+    while (nextPath !== null && nextPath !== undefined) {
+        if (typeof nextPath !== 'string' || !nextPath) {
+            throw new Error('The API returned an invalid pagination link.');
+        }
+
+        const requestPath = normalizeApiPath(nextPath);
+        if (visitedPaths.has(requestPath)) {
+            throw new Error('The API returned a repeated pagination link.');
+        }
+        visitedPaths.add(requestPath);
+
+        const page = await client(requestPath);
+        if (Array.isArray(page)) {
+            return results.concat(page);
+        }
+        if (!page || !Array.isArray(page.results)) {
+            throw new Error('The API returned an invalid paginated response.');
+        }
+
+        results.push(...page.results);
+        nextPath = page.next;
+    }
+
+    return results;
+}

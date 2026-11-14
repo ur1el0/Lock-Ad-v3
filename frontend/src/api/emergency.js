@@ -1,8 +1,8 @@
-import { client } from './client';
+import { client, getAllPages } from './client';
 import { getCsrfToken } from "./auth";
 
 export async function getEmergencyContacts() {
-    return client('/api/emergency/contacts/');
+    return getAllPages('/api/emergency/contacts/');
 }
 
 export async function addEmergencyContact(data) {

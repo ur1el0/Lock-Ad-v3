@@ -25,7 +25,7 @@ export function BottomNav() {
     ];
 
     // Conditionally include the Moderator tab for staff/moderators
-    if (user?.role === "MODERATOR") {
+    if (user?.is_staff) {
         navItems.push({
             path: "/moderator",
             label: "Moderator",

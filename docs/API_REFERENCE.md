@@ -12,8 +12,9 @@ size of 50:
       "results": []
     }
 
-Clients must consume the results array and follow next when more pages are
-needed. Do not assume a list endpoint returns a bare array.
+Direct API callers must consume the results array and follow next when more
+pages are needed. The React collection helpers follow every next link and
+return a flat array to page components.
 
 ## Authentication and CSRF
 
@@ -206,8 +207,9 @@ APPROVED:
 
 ## Client integration note
 
-The backend's paginated list contract is authoritative. At this documentation
-revision, several frontend list consumers treat list responses as arrays:
-map signals/incidents, saved routes, and emergency contacts. They need to
-unwrap results (and optionally follow next) before relying on those screens.
-This is tracked as a code integration follow-up, not an alternate API format.
+The backend's paginated list contract is authoritative. React API helpers use
+the shared getAllPages function to collect results and follow next links. It
+normalizes provider-generated links to same-origin /api/ paths before sending
+browser credentials. New collection callers should use that helper or
+explicitly handle the complete page envelope; do not change the backend to
+return bare arrays.
