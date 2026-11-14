@@ -1,9 +1,11 @@
 import { useState, useEffect } from "react";
 import { getEmergencyContacts, addEmergencyContact, deleteEmergencyContact } from "../api/emergency";
 import { APIError } from "../api/client";
+import { useAuth } from "../hooks/useAuth";
 import { ShieldAlert, Trash2, UserPlus, Phone, AlertCircle, ShieldCheck } from "lucide-react";
 
 export function EmergencyContactsPage() {
+    const { user } = useAuth();
     const [contacts, setContacts] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -84,7 +86,9 @@ export function EmergencyContactsPage() {
                             Emergency Contacts
                         </h1>
                         <p className="text-xs md:text-sm text-muted-foreground mt-0.5">
-                            Manage trusted contacts for SOS alerts
+                            {user?.is_staff
+                                ? 'Manage trusted contacts for SOS alerts'
+                                : 'Add trusted contacts for SOS alerts. Contact removal is administrator-only.'}
                         </p>
                     </div>
                 </div>
@@ -129,13 +133,15 @@ export function EmergencyContactsPage() {
                                             </span>
                                         </div>
                                     </div>
-                                    <button 
-                                        onClick={() => handleDelete(contact.id)}
-                                        className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
-                                        aria-label={`Delete ${contact.name} from emergency contacts`}
-                                    >
-                                        <Trash2 className="w-5 h-5" />
-                                    </button>
+                                    {user?.is_staff && (
+                                        <button
+                                            onClick={() => handleDelete(contact.id)}
+                                            className="p-2 text-muted-foreground hover:text-destructive hover:bg-destructive/10 rounded-xl transition-all"
+                                            aria-label={`Delete ${contact.name} from emergency contacts`}
+                                        >
+                                            <Trash2 className="w-5 h-5" />
+                                        </button>
+                                    )}
                                 </li>
                             ))}
                         </ul>
