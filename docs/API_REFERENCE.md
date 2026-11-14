@@ -169,9 +169,9 @@ backend settings. Gemini is disabled by default; see
 | PUT/PATCH/DELETE | /api/emergency/contacts/{id}/ | Staff + CSRF | Update or delete. |
 
 Fields: name (100 characters maximum), phone_number (20 maximum), and
-relationship (50 maximum). There is no server-side limit on contact count.
-The API stores contact information only; it does not initiate an SOS, call, or
-message.
+relationship (50 maximum). Each user can create up to three emergency
+contacts; additional create requests return 400. The API stores contact
+information only; it does not initiate an SOS, call, or message.
 
 ## Approved-report WebSocket
 

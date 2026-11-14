@@ -1,6 +1,9 @@
 from django.db import models
 from django.conf import settings
 
+MAX_EMERGENCY_CONTACTS_PER_USER = 3
+
+
 class EmergencyContact(models.Model):
     user = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='emergency_contacts')
     name = models.CharField(max_length=100)

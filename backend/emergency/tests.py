@@ -63,3 +63,54 @@ class EmergencyContactPermissionTests(APITestCase):
             EmergencyContact.objects.get(pk=response.data['id']).user,
             self.owner,
         )
+
+    def test_user_cannot_create_more_than_three_contacts(self):
+        self.client.force_authenticate(user=self.owner)
+        payload = {
+            'name': 'Additional Contact',
+            'phone_number': '555-0101',
+            'relationship': 'Friend',
+        }
+
+        for _ in range(2):
+            response = self.client.post(self.list_url, payload, format='json')
+            self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+
+        response = self.client.post(self.list_url, payload, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+        self.assertEqual(
+            response.data['detail'],
+            'You can save up to 3 emergency contacts.',
+        )
+        self.assertEqual(
+            EmergencyContact.objects.filter(user=self.owner).count(),
+            3,
+        )
+
+    def test_emergency_contact_limit_is_per_user(self):
+        EmergencyContact.objects.create(
+            user=self.owner,
+            name='Second Contact',
+            phone_number='555-0102',
+            relationship='Friend',
+        )
+        EmergencyContact.objects.create(
+            user=self.owner,
+            name='Third Contact',
+            phone_number='555-0103',
+            relationship='Friend',
+        )
+        self.client.force_authenticate(user=self.other_user)
+
+        response = self.client.post(self.list_url, {
+            'name': 'Other User Contact',
+            'phone_number': '555-0104',
+            'relationship': 'Family',
+        }, format='json')
+
+        self.assertEqual(response.status_code, status.HTTP_201_CREATED)
+        self.assertEqual(
+            EmergencyContact.objects.filter(user=self.other_user).count(),
+            1,
+        )
