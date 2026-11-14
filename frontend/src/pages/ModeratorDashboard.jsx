@@ -191,6 +191,12 @@ export function ModeratorDashboard() {
                                         </section>
                                     )}
 
+                                    {report.image && !report.ai_analysis && (
+                                        <p className="m-0 rounded-xl border border-border bg-muted/40 p-3 text-xs text-muted-foreground">
+                                            No automated review aid is available. Review the photo and report yourself.
+                                        </p>
+                                    )}
+
                                     {/* Location & Timestamp Metadata */}
                                     <div className="flex items-center justify-between text-xs text-muted-foreground pt-1 border-t border-border/60">
                                         <div className="flex items-center gap-1 font-mono">
