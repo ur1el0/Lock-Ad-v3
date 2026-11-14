@@ -11,20 +11,23 @@ graph TD
     subgraph Client ["Frontend (React + Vite)"]
         UI["User Interface (Pages/Forms)"]
         AuthCtx["Auth Context (Session / CSRF)"]
-        Map["Map Engine (Planned)"]
+        Map["Map Engine"]
     end
 
     subgraph Server ["Backend (Django + DRF)"]
         CoreApp["core (Health Check)"]
         AccApp["accounts (User Auth & Session)"]
         NavApp["navigation (ORS Router & Serializers)"]
-        SafApp["safety (Planned Incident & Dataset Engine)"]
+        SafApp["safety_data (Reports, Moderation & Signals)"]
     end
 
     subgraph Data ["Storage & Third Party APIs"]
         DB[(SQLite / PostgreSQL)]
+        Redis[(Redis Cache, Channels & Celery Broker)]
+        Worker["Celery Image Analysis Worker"]
+        Beat["Celery Beat Maintenance Scheduler"]
         ORS[OpenRouteService API]
-        OSM[OpenStreetMap / Overpass API]
+        Gemini[Google Gemini API]
     end
 
     UI -->|API Requests| CoreApp
@@ -33,7 +36,13 @@ graph TD
     
     AccApp -->|Query/Update| DB
     NavApp -->|Fetch Geometry| ORS
-    SafApp -->|Ingest Safety Data| OSM
+    SafApp -->|Read Reports & Signals| DB
+    SafApp -->|Queue Photo Review| Redis
+    Redis -->|Deliver Tasks| Worker
+    Worker -->|Load Report & Save Analysis| DB
+    Worker -->|Summarize Evidence| Gemini
+    SafApp -->|Approved Incident Events| Redis
+    Beat -->|Schedule Recovery & Cleanup| Redis
 ```
 
 ---
@@ -41,7 +50,7 @@ graph TD
 ## Architectural Principles
 
 1. **Separation of Concerns**: Backend business logic is split into standalone Django applications (`accounts`, `navigation`, `core`, `safety`). The frontend interacts with these cleanly via JSON API endpoints.
-2. **Backend-Heavy Routing**: Route-provider access, API keys, and route-context aggregation stay on the backend. The frontend presents mapped context without claiming a calibrated safety score.
+2. **Backend-Heavy Routing**: Route calculations, provider keys, and mapped route-context summaries stay on the backend. The frontend remains thin and presentational; no uncalibrated safety score is exposed.
 3. **Session-Based State**: User sessions are persisted via standard secure Django session cookies instead of local state storage, protecting against XSS token extraction.
 4. **Advisory Framing**: System interfaces and data pipelines are built to communicate *cautious advice* rather than absolute safety guarantees. 
 

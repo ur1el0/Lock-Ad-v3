@@ -50,22 +50,19 @@ moderators maintain report quality.
 
 ### Milestone 3 --- Intelligent Features
 
--   AI report summaries
--   AI route explanations
--   OCR for report images
--   User reputation system
--   Confidence scoring
+-   Moderator-only AI review aid for incident photos
+-   Future: AI route explanations and OCR for report images
+-   Future: user reputation and calibrated confidence scoring
 
 Deliverable: An intelligent system that helps users understand
 information rather than simply displaying raw data.
 
 ### Milestone 4 --- Scalability
 
--   Live incident updates
--   WebSockets
--   Analytics dashboard
--   Route scoring improvements
--   Performance optimization
+-   Live approved-incident updates through WebSockets
+-   Future: analytics dashboard
+-   Future: broader route scoring improvements
+-   Future: performance optimization
 
 Deliverable: A scalable application capable of handling more users and
 real-time information.
@@ -146,10 +143,10 @@ Contains only the features actively being developed.
 
 Examples:
 
--   Finish route preview API
--   Integrate OpenRouteService
--   Complete the map interface
--   Improve testing
+-   Keep route previews, reports, and advisories reliable
+-   Maintain moderation and private evidence workflows
+-   Expand automated coverage and the release workflow
+-   Maintain deployment, backup, restore, and retention guidance
 
 ### Product Backlog
 

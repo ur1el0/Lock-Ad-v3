@@ -27,9 +27,10 @@ Backend: Django + Django REST Framework
 Frontend: React + Vite
 Auth: Django session authentication + CSRF protection
 Routing provider: OpenRouteService through the backend
-Current database: SQLite for local development
-Future database: PostgreSQL
-Future real-time: Django Channels + WebSockets
+Local database: SQLite
+Compose database: PostgreSQL
+Real-time: Django Channels + Redis-backed WebSockets
+Background work: Celery + Redis for incident-photo analysis
 ```
 
 ## Repository structure
@@ -41,9 +42,7 @@ Lock-Ad-v3/
 └── docs/      project documentation
 ```
 
-## Current implemented foundation
-
-Implemented or planned in the current working project:
+## Current implementation
 
 - Django REST backend
 - React/Vite frontend
@@ -56,10 +55,12 @@ Implemented or planned in the current working project:
 - Login and registration pages
 - Protected routes and guest-only routes
 - Authenticated home page with session controls
-- Project documentation
-- Initial `navigation` Django app
-- OpenRouteService API key setting through `.env`
-- Route preview request serializer work
+- OpenRouteService route previews, saved routes, and mapped route context (no calibrated safety score)
+- Community incident reports, moderator review, private image access, and live approved-incident updates
+- Weather context and Gemini travel advisories with configured request limits
+- Optional Gemini photo summaries run through a Celery worker and Redis queue
+- Docker Compose services for PostgreSQL, Redis, Django, the worker, and the frontend
+- Optional production profile with Celery Beat and Caddy HTTPS termination
 
 ## Product users
 
@@ -76,25 +77,25 @@ Implemented or planned in the current working project:
 ```txt
 Guest user
 → register/login
-→ authenticated home
 → enter origin and destination
-→ preview cautious walking route
-→ review distance, time, route, and safety-related context
-→ optionally save route
-→ optionally start trip
-→ active tracking/check-in
+→ preview a cautious walking route
+→ review distance, time, and safety-related context
+→ optionally save the route
+→ optionally submit a local incident report
+→ moderators review submitted reports
 ```
 
-## Backend app plan
+## Backend apps
 
 ```txt
-core        shared/basic endpoints
-accounts    auth/session user flows
-navigation  routing provider integration and route previews
-safety      safety datasets, reports, scoring, and overlays
+core         health and readiness endpoints
+accounts     auth/session user flows
+navigation   routing provider integration, saved routes, and route context
+safety_data  reports, moderation, safety signals, and overlays
+emergency    emergency contact features
 ```
 
-`accounts` and `safety` are separate domains.
+`accounts`, `navigation`, and `safety_data` are separate domains.
 
 ## Current API endpoints
 
@@ -102,6 +103,7 @@ Core:
 
 ```txt
 GET /api/health/
+GET /api/health/ready/
 ```
 
 Accounts:
@@ -114,10 +116,20 @@ POST /api/auth/logout/
 GET  /api/auth/me/
 ```
 
-Navigation target:
+Navigation:
 
 ```txt
 POST /api/navigation/routes/preview/
+```
+
+Safety data:
+
+```txt
+GET  /api/safety/signals/
+GET  /api/safety/incidents/
+POST /api/safety/incidents/
+GET  /api/safety/weather/
+POST /api/safety/advisory/
 ```
 
 ## Route preview target
@@ -246,9 +258,7 @@ Assumption:
 No widely available public real-time crime API is expected.
 ```
 
-## Architecture plan
-
-Current architecture:
+## Current architecture
 
 ```txt
 React frontend
@@ -259,24 +269,11 @@ Django REST Framework backend
   │
   ├─ Django session auth
   ├─ CSRF protection
-  ├─ SQLite locally
+  ├─ SQLite locally / PostgreSQL in Compose
+  ├─ Redis-backed cache and WebSocket channel layer
+  ├─ Celery worker for photo analysis
+  ├─ Celery Beat for stale-task recovery and media deletion
   └─ OpenRouteService integration through backend
-```
-
-Future architecture:
-
-```txt
-React frontend
-  │
-  ├─ REST API for auth, CRUD, routes, reports
-  ├─ WebSocket connection for live events
-  ▼
-Django REST Framework backend
-  │
-  ├─ PostgreSQL
-  ├─ Django Channels
-  ├─ routing provider integration
-  └─ safety data/scoring services
 ```
 
 REST should handle:
@@ -288,12 +285,11 @@ REST should handle:
 - user reports CRUD
 - safety data CRUD/admin workflows
 
-WebSockets should handle:
+WebSockets currently handle:
 
-- live incident markers
-- route re-evaluation events
-- moderator dashboard updates
-- emergency notifications
+- approved incident markers
+
+Route re-evaluation and emergency notifications remain future work.
 
 GraphQL is optional later. Use it only if the frontend needs flexible nested data in one request.
 
@@ -320,7 +316,7 @@ Expanded version:
 - Saved routes and favorite places
 - User-submitted reports
 - Moderator dashboard
-- Real-time incident markers using WebSockets
+- Real-time approved-incident markers using WebSockets (implemented)
 - Weather-aware route warnings
 - Safety dataset overlays from OSM, LGU, PAGASA, DOST, DPWH, or PSA where available
 - Custom route scoring engine
@@ -373,7 +369,7 @@ Scope:
 
 ### 3. `feature/navigation-api`
 
-Status: active.
+Status: implemented in the current worktree; not yet released.
 
 Scope:
 
@@ -384,13 +380,13 @@ Scope:
 - route preview endpoint
 - route preview tests
 
-Immediate next items:
+Implemented:
 
 ```txt
-1. Finish/fix route preview serializer.
-2. Build backend/navigation/services.py.
-3. Add navigation URLs and view.
-4. Add tests with mocked provider calls.
+1. Route preview validation, OpenRouteService integration, and authenticated endpoint.
+2. Saved-route ownership isolation.
+3. Route context summary with source/update metadata and an explicit coverage note.
+4. Numeric safety score removed pending a defensible, evaluated model.
 ```
 
 ### 4. `feature/frontend-map`

@@ -436,7 +436,7 @@ OpenRouteService setting:
 OPENROUTESERVICE_API_KEY = os.getenv("OPENROUTESERVICE_API_KEY", "")
 ```
 
-`.env.example` should contain:
+`backend/.env.example` should contain:
 
 ```txt
 DJANGO_SECRET_KEY=your-secret-key-here
