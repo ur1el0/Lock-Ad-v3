@@ -41,10 +41,11 @@ npm run build
 npm run preview
 ```
 
-`npm test` runs the Vitest and React Testing Library suite in JSDOM. The current
-tests exercise the real authentication provider, route guards, and login and
-registration pages with isolated API responses; they do not require a running
-backend.
+`npm test` runs the Vitest and React Testing Library suite in JSDOM. The tests
+exercise authentication flows and the route planner with isolated API responses;
+they do not require a running backend. The route planner checks the requested
+coordinates, route summary, mapped-context coverage note, and provider-error
+state.
 
 ## API proxy
 
@@ -81,7 +82,7 @@ src/
 ├── context/    AuthContext and AuthProvider
 ├── hooks/      useAuth hook
 ├── pages/      Login and registration pages
-├── test/       Authentication flow tests and test setup
+├── test/       Authentication and route-planner tests, plus test setup
 ├── App.jsx     route definitions
 └── main.jsx    app entry point
 ```
@@ -105,6 +106,6 @@ GuestOnlyRoute   blocks logged-in users from login/register
 
 ## Later frontend work
 
-- Extend automated coverage to route-planner, map, and moderator workflows.
+- Extend automated coverage to map and moderator workflows.
 - Design trip tracking only after location permissions, sharing, and retention
   behavior are defined; the planned mobile client may live in a separate repo.
