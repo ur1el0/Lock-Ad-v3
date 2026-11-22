@@ -1,6 +1,7 @@
 import math
 import requests
 
+from django.conf import settings
 from django.db.models import Q
 from django.http import FileResponse, Http404
 from PIL import Image, UnidentifiedImageError
@@ -143,7 +144,11 @@ class IncidentReportViewSet(viewsets.ModelViewSet):
             user=self.request.user,
             status='PENDING'
         )
-        if report.image:
+        if (
+            report.image
+            and settings.GEMINI_API_ENABLED
+            and settings.GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED
+        ):
             analysis = analyze_incident_image(
                 report.image,
                 report.incident_type,

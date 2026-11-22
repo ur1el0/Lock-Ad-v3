@@ -46,6 +46,23 @@ if not SECRET_KEY or (
 OPENROUTESERVICE_API_KEY = os.getenv("OPENROUTESERVICE_API_KEY", "")
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 
+
+def env_bool(name, default="False"):
+    value = os.getenv(name, default).strip().lower()
+    if value not in {"true", "false"}:
+        raise ImproperlyConfigured(f"{name} must be set to 'True' or 'False'.")
+    return value == "true"
+
+
+GEMINI_API_ENABLED = env_bool("GEMINI_API_ENABLED")
+GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED = env_bool(
+    "GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED"
+)
+if GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED and not GEMINI_API_ENABLED:
+    raise ImproperlyConfigured(
+        "GEMINI_API_ENABLED must be True before enabling incident image analysis."
+    )
+
 SECURE_COOKIES = os.getenv(
     'DJANGO_SECURE_COOKIES',
     str(not DEBUG),
@@ -197,6 +214,9 @@ REST_FRAMEWORK = {
     'DEFAULT_THROTTLE_RATES': {
         'anon': '100/day',
         'user': '1000/day',
+        'incident_image_upload': '10/day',
+        'gemini_advisory_anon': '20/hour',
+        'gemini_advisory_user': '100/day',
     },
     'DEFAULT_PAGINATION_CLASS': 'rest_framework.pagination.PageNumberPagination',
     'PAGE_SIZE': 50,

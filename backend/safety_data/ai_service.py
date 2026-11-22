@@ -10,6 +10,9 @@ def get_travel_advisory(distance, duration, weather_code, temperature):
     Calls Google Gemini API for a smart route advisory.
     Gracefully falls backe to hardcoded logic if the API fails.
     """
+    if not getattr(settings, 'GEMINI_API_ENABLED', False):
+        return _get_fallback_advisory(distance, duration, weather_code, temperature)
+
     try:
         # 1. Retrieve the secure key
         api_key = getattr(settings, 'GEMINI_API_KEY', None)
@@ -69,6 +72,12 @@ def analyze_incident_image(image_file, incident_type: str, description: str = ""
     """
     Summarizes visible evidence and text for a human moderator.
     """
+    if not (
+        getattr(settings, 'GEMINI_API_ENABLED', False)
+        and getattr(settings, 'GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED', False)
+    ):
+        return "Automated vision analysis is disabled. Manual review required."
+
     try:
         api_key = getattr(settings, 'GEMINI_API_KEY', None)
         if not api_key:

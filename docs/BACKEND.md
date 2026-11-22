@@ -48,6 +48,8 @@ DJANGO_DEBUG=True
 DJANGO_ALLOWED_HOSTS=127.0.0.1,localhost
 OPENROUTESERVICE_API_KEY=
 GEMINI_API_KEY=
+GEMINI_API_ENABLED=False
+GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED=False
 ```
 
 Do not commit real secrets.
@@ -96,8 +98,8 @@ POST /api/navigation/routes/preview/
 Safety-data notes:
 
 - Incident photos accept JPEG, PNG, or WebP up to 5 MB and 20 megapixels. Original file bytes are retained for evidence review under a random storage name; image access requires staff authorization, and deleting a report schedules its image for deletion.
-- When a photo is attached, both the photo and report description are sent to Gemini for a moderator-only review aid. The AI does not approve reports.
-- `POST /api/safety/advisory/` validates numeric weather and trip inputs and is rate-limited to 20 requests/hour for anonymous clients and 100/day for authenticated users.
+- Gemini is disabled by default. Set `GEMINI_API_ENABLED=True` to opt in to Gemini-backed features; incident-photo analysis additionally requires `GEMINI_INCIDENT_IMAGE_ANALYSIS_ENABLED=True`. When enabled, the photo, report category, and description are sent to Gemini as a moderator-only review aid. The AI does not approve reports. See [Privacy and AI Data Flows](PRIVACY_AND_AI.md) before enabling it.
+- `POST /api/safety/advisory/` validates numeric weather and trip inputs and is rate-limited to 20 requests/hour for anonymous clients and 100/day for authenticated users. With Gemini disabled, it uses the local fallback.
 
 ## Authentication flow
 
