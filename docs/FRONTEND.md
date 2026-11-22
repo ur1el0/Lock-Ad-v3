@@ -76,11 +76,11 @@ Do not hard-code backend URLs in normal frontend API calls.
 
 ```txt
 src/
-├── api/        API client and auth API helpers
-├── components/ route guard components
-├── context/    AuthContext and AuthProvider
-├── hooks/      useAuth hook
-├── pages/      Login and registration pages
+├── api/        shared client and auth/navigation/safety/emergency helpers
+├── components/ map, report dialog, navigation, and route guards
+├── context/    authentication and route-planner state
+├── hooks/      authentication and route-context hooks
+├── pages/      home, route planner, contacts, moderator, login, registration
 ├── test/       Authentication, route-planner, and moderator tests, plus setup
 ├── App.jsx     route definitions
 └── main.jsx    app entry point
@@ -98,10 +98,18 @@ GuestOnlyRoute   blocks logged-in users from login/register
 ## Current routes
 
 ```txt
-/          protected home page
+/          authenticated home/map
+/route     authenticated route planner
+/contacts  authenticated emergency-contact page
+/moderator authenticated staff-only moderator dashboard
 /login     guest-only login page
 /register  guest-only registration page
 ```
+
+List endpoints return a paginated object rather than a bare array. The
+[API Reference](API_REFERENCE.md) documents the contract, and the
+[project plan](PROJECT_README.md#known-integration-gaps) records current
+screens that still need to normalize that response.
 
 ## Later frontend work
 

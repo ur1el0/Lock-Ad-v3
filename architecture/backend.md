@@ -28,11 +28,11 @@ Lock-Ad v3 utilizes Django's session authentication instead of stateless JWTs. T
      - The CSRF token in the `X-CSRFToken` HTTP header.
      - Session credentials (cookies).
 3. **Protected Auth Views**:
-   - The register, login, logout, and self (`me`) views are guarded by `csrf_protect` and use standard Django django_login/django_logout.
+   - Register, login, and logout are CSRF-protected POST requests. The `me` endpoint is an authenticated GET. Login and logout use Django's session functions.
 
 ### 3. Account Serializers & Validation
 
-- `UserSerializer`: Serializes Django `User` model attributes (`id`, `username`, `email`).
+- `UserSerializer`: Returns `id`, `username`, `email`, and `is_staff`.
 - `RegisterSerializer`: Validates registration rules (valid username, email format, password constraints) and creates the user model records securely using `create_user`.
 
 ### 4. Tests
@@ -46,6 +46,6 @@ python manage.py test
 
 `POST /api/navigation/routes/preview/` validates origin, destination, and the supported `foot-walking` profile with `RoutePreviewRequestSerializer`. `navigation/services.py` requests route geometry from OpenRouteService, considers moderator-approved incidents near the initial route for avoidance, and returns structured mapped route context from `navigation/scoring.py`. The context includes counts grouped by signal type and source, record-update dates, nearby approved-report dates, and a coverage notice; it is not a calibrated safety score. Approved-report avoidance still has no freshness window, so report age must be considered before relying on that rerouting behavior.
 
-Incident and signal endpoints are routed through `safety_data/urls.py`. Serializers validate and shape their data; viewsets enforce permissions and queryset visibility. Image-backed reports are analyzed through `safety_data/ai_service.py`, and moderation status changes may be broadcast by `safety_data/signals.py` to authenticated Channels consumers.
+Incident and signal endpoints are routed through `safety_data/urls.py`. Serializers validate and shape their data; viewsets enforce permissions and queryset visibility. When both Gemini feature switches are enabled, image analysis is queued through Celery after the incident record commits; it is not part of the request-response transaction. The analysis is a staff review aid, not an approval decision. `safety_data/signals.py` broadcasts only when a report transitions to APPROVED.
 
 Provider API keys belong in environment configuration. Keep provider calls in their service modules, return sanitized client errors, and keep session authentication plus CSRF protection for unsafe browser requests.
