@@ -86,8 +86,8 @@ it to request help.
 
 The current API lets a signed-in user create, list, and view their own
 contacts. Editing and deletion are staff-only at the API. The web interface
-shows a three-contact limit, but the backend does not enforce that limit. The
-contacts list is scoped to the signed-in account.
+and API both enforce a three-contact limit. The contacts list is scoped to the
+signed-in account.
 
 ## Moderator workflow
 

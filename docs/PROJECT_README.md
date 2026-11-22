@@ -115,9 +115,8 @@ freshness, provenance, and candidate sources.
 These are implementation findings from the current code revision and should be
 checked again when the related client work is changed:
 
-1. Emergency-contact creation shows a three-item limit in the browser, but
-   the API does not enforce the limit. Standard users can create/list/retrieve
-   their own contacts; API updates and deletion are staff-only.
+1. Standard users can create/list/retrieve their own emergency contacts; API
+   updates and deletion are staff-only.
 2. Route entry is coordinate-based; address search/geocoding is not part of
    the current API flow.
 3. Map tracking-related state exists, but the web flow does not currently
@@ -134,13 +133,12 @@ Do not imply an unimplemented safety capability.
 
 ## Roadmap
 
-### 1. Align emergency-contact permissions and limits
+### 1. Review emergency-contact permissions
 
 - Decide whether ordinary users should be able to edit or delete their own
   contacts, or whether those actions remain staff-only.
-- Decide whether the three-contact cap is a product requirement; if so,
-  enforce it in the backend as well as the interface.
-- Test the selected authorization and limit at both API and UI boundaries.
+- The API and web interface currently enforce a three-contact cap per user.
+- Keep authorization tests if the edit/delete policy changes.
 
 ### 2. Validate safety-data coverage
 
