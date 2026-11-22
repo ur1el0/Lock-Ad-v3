@@ -22,6 +22,12 @@ The manual backend command is:
     cd backend
     python manage.py import_osm_data --bbox min_lat,min_lng,max_lat,max_lng
 
+Preview a refresh first with the same command plus `--dry-run`. It fetches and
+validates the Overpass response, reports how many in-bounds records would be
+replaced and how many supported signals would be imported, and makes no
+database changes. The live run makes a new Overpass request, so its result may
+differ from the preview.
+
 The command queries Overpass for nodes tagged as hospitals, clinics, police,
 street_lamps, or surveillance/camera mounts. It stores source OSM, the
 selected signal type, name, coordinates, tags, and Lock-Ad database

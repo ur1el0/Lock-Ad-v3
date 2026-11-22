@@ -1,3 +1,4 @@
+from io import StringIO
 from unittest.mock import Mock, patch
 
 from django.core.management import call_command, CommandError
@@ -51,6 +52,37 @@ class ImportOsmDataTests(TestCase):
         self.assertTrue(SafetySignal.objects.filter(
             source='OSM', name='OSM Street Light', latitude='14.010000000',
         ).exists())
+
+    @patch('safety_data.management.commands.import_osm_data.requests.post')
+    def test_dry_run_reports_replacement_without_changing_records(self, post):
+        inside = self.create_osm_signal('Existing inside light', '14.0', '121.6')
+        outside = self.create_osm_signal('Existing outside light', '14.2', '121.8')
+        response = Mock()
+        response.json.return_value = {
+            'elements': [{
+                'type': 'node',
+                'lat': 14.01,
+                'lon': 121.61,
+                'tags': {'highway': 'street_lamp'},
+            }],
+        }
+        post.return_value = response
+        output = StringIO()
+
+        call_command(
+            'import_osm_data',
+            bbox=self.bbox,
+            dry_run=True,
+            stdout=output,
+        )
+
+        self.assertTrue(SafetySignal.objects.filter(pk=inside.pk).exists())
+        self.assertTrue(SafetySignal.objects.filter(pk=outside.pk).exists())
+        self.assertEqual(SafetySignal.objects.count(), 2)
+        self.assertIn('Existing OSM records to replace: 1', output.getvalue())
+        self.assertIn('Supported signals to import: 1', output.getvalue())
+        self.assertIn('No database changes were made.', output.getvalue())
+        post.assert_called_once()
 
     @patch('safety_data.management.commands.import_osm_data.requests.post')
     def test_malformed_response_preserves_existing_records(self, post):
