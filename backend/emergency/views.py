@@ -11,10 +11,11 @@ class EmergencyContactViewSet(viewsets.ModelViewSet):
         Require IsAdminUser for destructive actions.
         Standard users can only list, retrieve, or create.
         """
-        if self.action in ['update', 'partial_update', 'destroy']:
-            self.permission_classes = [permissions.IsAdminUser]
-        else:
-            permission_classes = [permissions.IsAuthenticated]
+        permission_classes = (
+            [permissions.IsAdminUser]
+            if self.action in ['update', 'partial_update', 'destroy']
+            else [IsAuthenticated]
+        )
         return [permission() for permission in permission_classes]
 
     def get_queryset(self):
@@ -24,8 +25,8 @@ class EmergencyContactViewSet(viewsets.ModelViewSet):
         """
         user = self.request.user
         if user.is_staff:
-            return EmergencyContact.objects.all()
-        return EmergencyContact.objects.filter(user=user)
+            return EmergencyContact.objects.all().order_by('-created_at')
+        return EmergencyContact.objects.filter(user=user).order_by('-created_at')
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
