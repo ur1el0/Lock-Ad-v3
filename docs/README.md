@@ -33,9 +33,6 @@ from proposed work.
   workers, and recovery.
 - [Report Privacy and AI Processing](PRIVACY_AND_AI.md): data flows, access,
   and optional external AI processing.
-- [Conversation / Project Context Export](CONVERSATION_EXPORT.md): historical
-  planning and conversation context; use current implementation docs when
-  deciding what the app does today.
 
 ## Documentation rule
 
