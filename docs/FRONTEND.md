@@ -36,9 +36,15 @@ Use the frontend URL for browser testing.
 ```bash
 npm run dev
 npm run lint
+npm test
 npm run build
 npm run preview
 ```
+
+`npm test` runs the Vitest and React Testing Library suite in JSDOM. The current
+tests exercise the real authentication provider, route guards, and login and
+registration pages with isolated API responses; they do not require a running
+backend.
 
 ## API proxy
 
@@ -75,6 +81,7 @@ src/
 ├── context/    AuthContext and AuthProvider
 ├── hooks/      useAuth hook
 ├── pages/      Login and registration pages
+├── test/       Authentication flow tests and test setup
 ├── App.jsx     route definitions
 └── main.jsx    app entry point
 ```
@@ -98,9 +105,6 @@ GuestOnlyRoute   blocks logged-in users from login/register
 
 ## Later frontend work
 
-- Improve DRF validation error display.
-- Add map UI.
-- Add route input form.
-- Render route preview geometry.
-- Add saved route UI.
-- Add safety overlay UI.
+- Extend automated coverage to route-planner, map, and moderator workflows.
+- Design trip tracking only after location permissions, sharing, and retention
+  behavior are defined; the planned mobile client may live in a separate repo.
