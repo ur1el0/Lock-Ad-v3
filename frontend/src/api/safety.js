@@ -1,4 +1,4 @@
-import { client } from './client';
+import { client, getAllPages } from './client';
 import { getCsrfToken } from './auth'
 
 export async function fetchSafetySignals({ min_lat, max_lat, min_lng, max_lng }) {
@@ -8,7 +8,7 @@ export async function fetchSafetySignals({ min_lat, max_lat, min_lng, max_lng })
         min_lng,
         max_lng,
     });
-    return client(`/api/safety/signals/?${params.toString()}`);
+    return getAllPages(`/api/safety/signals/?${params.toString()}`);
 }
 
 export async function fetchIncidents({ min_lat, max_lat, min_lng, max_lng }) {
@@ -18,11 +18,11 @@ export async function fetchIncidents({ min_lat, max_lat, min_lng, max_lng }) {
         min_lng,
         max_lng,
     });
-    return client(`/api/safety/incidents/?${params.toString()}`);
+    return getAllPages(`/api/safety/incidents/?${params.toString()}`);
 }
 
 export async function getAllIncidentReports() {
-    return client('/api/safety/incidents/')
+    return getAllPages('/api/safety/incidents/')
 }
 
 export async function createIncident(data) {

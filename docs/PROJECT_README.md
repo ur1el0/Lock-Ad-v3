@@ -115,43 +115,32 @@ freshness, provenance, and candidate sources.
 These are implementation findings from the current code revision and should be
 checked again when the related client work is changed:
 
-1. DRF list endpoints return a page object with a results array. Some frontend
-   consumers still expect plain arrays: map signals/incidents, saved routes,
-   and emergency contacts. These screens need response normalization and
-   pagination handling.
-2. The user response exposes is_staff, while the bottom navigation checks a
-   role property for the moderator link. The moderator page itself checks
-   is_staff, so the link visibility and route access can disagree.
-3. Emergency-contact creation shows a three-item limit in the browser, but
+1. Emergency-contact creation shows a three-item limit in the browser, but
    the API does not enforce the limit. Standard users can create/list/retrieve
    their own contacts; API updates and deletion are staff-only.
-4. Route entry is coordinate-based; address search/geocoding is not part of
+2. Route entry is coordinate-based; address search/geocoding is not part of
    the current API flow.
-5. Map tracking-related state exists, but the web flow does not currently
+3. Map tracking-related state exists, but the web flow does not currently
    start a user-visible active trip. Do not describe this as live trip
    tracking.
-6. Emergency contacts are records only; no SOS message, call, location share,
+4. Emergency contacts are records only; no SOS message, call, location share,
    or dispatch operation is implemented.
-7. Approved reports used for route avoidance have no age cutoff. Their
+5. Approved reports used for route avoidance have no age cutoff. Their
    timestamps should be considered; this is not a validated or freshness-aware
    risk model.
 
-These are follow-up engineering items, not alternative API contracts. Do not
-hide them by weakening the API's paginated response shape or by implying an
-unimplemented safety capability.
+These remaining product and engineering gaps do not change the API contract.
+Do not imply an unimplemented safety capability.
 
 ## Roadmap
 
-### 1. Stabilize current API-to-UI contracts
+### 1. Align emergency-contact permissions and limits
 
-- Normalize paginated list responses at the API-client boundary or consumers.
-- Follow next pages where the UI needs complete lists.
-- Add frontend tests for map markers, saved routes, contacts, and staff
-  navigation using paginated response fixtures.
-- Align the moderator navigation check with the user field returned by the
-  backend.
-- Decide and document the intended owner-level edit/delete policy for
-  emergency contacts, then make the UI/API permissions agree.
+- Decide whether ordinary users should be able to edit or delete their own
+  contacts, or whether those actions remain staff-only.
+- Decide whether the three-contact cap is a product requirement; if so,
+  enforce it in the backend as well as the interface.
+- Test the selected authorization and limit at both API and UI boundaries.
 
 ### 2. Validate safety-data coverage
 

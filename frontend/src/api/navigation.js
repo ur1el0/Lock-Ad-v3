@@ -1,4 +1,4 @@
-import { client } from "./client";
+import { client, getAllPages } from "./client";
 import { getCsrfToken } from "./auth";
 
 export async function getRoutePreview(origin, destination, profile = 'foot-walking') {
@@ -18,7 +18,7 @@ export async function getRoutePreview(origin, destination, profile = 'foot-walki
 }
 
 export async function getSavedRoutes() {
-    return client('/api/navigation/saved-routes/');
+    return getAllPages('/api/navigation/saved-routes/');
 }
 
 export async function createSavedRoute(data) {

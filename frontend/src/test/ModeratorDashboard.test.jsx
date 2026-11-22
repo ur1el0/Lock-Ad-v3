@@ -39,7 +39,7 @@ function renderModeratorDashboard() {
 
 describe('moderator incident queue', () => {
   beforeEach(() => {
-    getAllIncidentReports.mockResolvedValue({ results: [pendingReport] })
+    getAllIncidentReports.mockResolvedValue([pendingReport])
     updateIncidentReport.mockResolvedValue(pendingReport)
   })
 
@@ -83,7 +83,7 @@ describe('moderator incident queue', () => {
   })
 
   it('shows an empty-queue message when there are no reports', async () => {
-    getAllIncidentReports.mockResolvedValue({ results: [] })
+    getAllIncidentReports.mockResolvedValue([])
 
     renderModeratorDashboard()
 

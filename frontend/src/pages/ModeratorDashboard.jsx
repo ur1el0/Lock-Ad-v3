@@ -19,9 +19,8 @@ export function ModeratorDashboard() {
         '/api/safety/incidents/',
         getAllIncidentReports,
         {
-            refreshInterval: latestData => {
-                const latestReports = latestData?.results || latestData || [];
-                return latestReports.some(report =>
+            refreshInterval: reports => {
+                return (reports || []).some(report =>
                     report.analysis_status === 'PENDING' ||
                     report.analysis_status === 'PROCESSING'
                 ) ? 5000 : 0;
@@ -43,7 +42,7 @@ export function ModeratorDashboard() {
         }
     }, [selectedImage]);
 
-    const reports = data?.results || data || [];
+    const reports = data || [];
     const loading = isLoading;
 
     async function handleStatusChange(id, newStatus) {

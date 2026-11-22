@@ -102,4 +102,20 @@ describe('route planner flow', () => {
     )
     expect(screen.queryByText('1.25 km')).not.toBeInTheDocument()
   })
+
+  it('renders saved routes returned as a flat list by the API helper', async () => {
+    getSavedRoutes.mockResolvedValue([{
+      id: 8,
+      name: 'Home to campus',
+      origin_lat: 13.9381,
+      origin_lng: 121.6238,
+      dest_lat: 13.9442,
+      dest_lng: 121.6179,
+    }])
+
+    renderRoutePlanner()
+
+    expect(await screen.findByRole('button', { name: 'Home to campus' }))
+      .toBeInTheDocument()
+  })
 })
