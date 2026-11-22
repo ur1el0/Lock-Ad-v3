@@ -1,9 +1,12 @@
 from unittest.mock import patch
 from django.urls import reverse
 from django.contrib.auth.models import User
+from django.test import TestCase
 from rest_framework import status
 from rest_framework.test import APITestCase
 from navigation.services import RoutingConfigurationError, RoutingProviderError
+from navigation.scoring import calculate_route_context
+from safety_data.models import IncidentReport, SafetySignal
 from .models import SavedRoute
 
 
@@ -32,12 +35,19 @@ class RoutePreviewTests(APITestCase):
             "geometry": {"type": "LineString", "coordinates": []},
             "provider": "openrouteservice",
             "profile": "foot-walking",
+            "route_context": {
+                "signals": [],
+                "incident_reports": [],
+                "coverage_note": "Mapped data may be incomplete.",
+            },
         }
 
         response = self.client.post(self.url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_200_OK)
         self.assertEqual(response.data['distance_meters'], 1200)
         self.assertEqual(response.data['provider'], 'openrouteservice')
+        self.assertIn('route_context', response.data)
+        self.assertNotIn('safety_score', response.data)
 
     def test_identical_coordinates_fails(self):
         """Providing identical origin and destination coordinates should fail validation."""
@@ -65,7 +75,55 @@ class RoutePreviewTests(APITestCase):
         mock_get_route.side_effect = RoutingProviderError("Routing provider error: connection failed")
         response = self.client.post(self.url, self.valid_payload, format='json')
         self.assertEqual(response.status_code, status.HTTP_502_BAD_GATEWAY)
-        
+
+
+class RouteContextTests(TestCase):
+    def test_context_groups_nearby_records_with_source_and_timestamps(self):
+        signal = SafetySignal.objects.create(
+            source='OSM',
+            signal_type='LIGHT',
+            name='Street light',
+            latitude='14.0000',
+            longitude='121.0050',
+        )
+        second_signal = SafetySignal.objects.create(
+            source='OSM',
+            signal_type='LIGHT',
+            name='Another street light',
+            latitude='14.0001',
+            longitude='121.0060',
+        )
+        incident = IncidentReport.objects.create(
+            incident_type='ACCIDENT',
+            latitude='14.0000',
+            longitude='121.0051',
+            status='APPROVED',
+        )
+        context = calculate_route_context({
+            "type": "LineString",
+            "coordinates": [[121.0000, 14.0000], [121.0100, 14.0000]],
+        })
+
+        self.assertEqual(context['signals'], [{
+            'signal_type': 'LIGHT',
+            'source': 'OSM',
+            'count': 2,
+            'last_updated_at': max(signal.updated_at, second_signal.updated_at).isoformat(),
+        }])
+        self.assertEqual(context['incident_reports'], [{
+            'incident_type': 'ACCIDENT',
+            'count': 1,
+            'latest_reported_at': incident.reported_at.isoformat(),
+        }])
+        self.assertIn('not a safety rating', context['coverage_note'])
+
+    def test_empty_geometry_returns_context_without_a_safety_score(self):
+        context = calculate_route_context({"coordinates": []})
+
+        self.assertEqual(context['signals'], [])
+        self.assertEqual(context['incident_reports'], [])
+        self.assertNotIn('score', context)
+
 class SavedRouteSecurityTests(APITestCase):
     def setUp(self):
         # 1. Create standard users and a moderator

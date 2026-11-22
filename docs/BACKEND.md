@@ -62,8 +62,8 @@ An existing `postgres_data` volume keeps the database role and password it was i
 ```txt
 core        shared/basic API endpoints
 accounts    session authentication endpoints
-navigation  route preview, provider integration, saved routes, and scoring
-safety_data incident reports, safety signals, scoring, and overlays
+navigation  route preview, provider integration, saved routes, and mapped route context
+safety_data incident reports, safety signals, and overlays
 ```
 
 ## Endpoints
