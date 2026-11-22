@@ -78,9 +78,11 @@ class Command(BaseCommand):
             response = requests.post(url, data={'data': query}, headers=headers, timeout=30)
             response.raise_for_status()
             data = response.json()
-        except (requests.exceptions.RequestException, ValueError) as e:
-            self.stdout.write(self.style.ERROR(f'Error fetching data from Overpass API: {str(e)}'))
-            return
+        except (requests.exceptions.RequestException, ValueError) as error:
+            raise CommandError(
+                'Overpass request failed '
+                f'({type(error).__name__}); existing records were preserved.'
+            ) from None
 
         if not isinstance(data, dict) or not isinstance(data.get('elements'), list):
             raise CommandError('Overpass returned an invalid response; existing records were preserved.')

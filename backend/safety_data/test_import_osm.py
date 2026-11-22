@@ -3,6 +3,7 @@ from unittest.mock import Mock, patch
 
 from django.core.management import call_command, CommandError
 from django.test import TestCase
+from requests.exceptions import Timeout
 
 from safety_data.models import SafetySignal
 
@@ -92,6 +93,28 @@ class ImportOsmDataTests(TestCase):
         post.return_value = response
 
         with self.assertRaises(CommandError):
+            call_command('import_osm_data', bbox=self.bbox)
+
+        self.assertTrue(SafetySignal.objects.filter(pk=existing.pk).exists())
+
+    @patch('safety_data.management.commands.import_osm_data.requests.post')
+    def test_provider_failure_fails_command_and_preserves_existing_records(self, post):
+        existing = self.create_osm_signal('Existing light', '14.0', '121.6')
+        post.side_effect = Timeout('provider timed out')
+
+        with self.assertRaisesRegex(CommandError, 'existing records were preserved'):
+            call_command('import_osm_data', bbox=self.bbox)
+
+        self.assertTrue(SafetySignal.objects.filter(pk=existing.pk).exists())
+
+    @patch('safety_data.management.commands.import_osm_data.requests.post')
+    def test_invalid_json_fails_command_and_preserves_existing_records(self, post):
+        existing = self.create_osm_signal('Existing light', '14.0', '121.6')
+        response = Mock()
+        response.json.side_effect = ValueError('invalid JSON')
+        post.return_value = response
+
+        with self.assertRaisesRegex(CommandError, 'existing records were preserved'):
             call_command('import_osm_data', bbox=self.bbox)
 
         self.assertTrue(SafetySignal.objects.filter(pk=existing.pk).exists())
