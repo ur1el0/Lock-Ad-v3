@@ -115,17 +115,19 @@ also includes id and created_at.
 
 GET /api/safety/signals/ requires authentication. The response is paginated.
 Optional bounding-box filtering uses all four query parameters together:
-min_lat, max_lat, min_lng, and max_lng. Each result contains the model fields:
-id, source, signal_type, name, latitude, longitude, tags, created_at, and
-updated_at. `updated_at` indicates when the record was last saved in Lock-Ad;
-it is not the source's inspection or verification time. Current source values
-are OSM, LGU, and PSA; signal types are CCTV, LIGHT, POLICE, and MEDICAL.
+min_lat, max_lat, min_lng, and max_lng. Partial bounds, nonnumeric values,
+coordinates outside latitude -90..90 / longitude -180..180, or reversed ranges
+return 400. Each result contains the model fields: id, source, signal_type,
+name, latitude, longitude, tags, created_at, and updated_at. `updated_at`
+indicates when the record was last saved in Lock-Ad; it is not the source's
+inspection or verification time. Current source values are OSM, LGU, and PSA;
+signal types are CCTV, LIGHT, POLICE, and MEDICAL.
 
 ### Incident reports
 
 | Method | Endpoint | Access | Contract |
 | --- | --- | --- | --- |
-| GET | /api/safety/incidents/ | Signed in | Paginated. Staff see all; other users see their own reports and approved reports. Supports the four bounding-box query parameters. |
+| GET | /api/safety/incidents/ | Signed in | Paginated. Staff see all; other users see their own reports and approved reports. Supports the validated bounding-box parameters described under Signals. |
 | POST | /api/safety/incidents/ | Signed in + CSRF | Creates a pending report owned by the current user. |
 | GET | /api/safety/incidents/{id}/ | Signed in | Retrieves only a report visible in that user's queryset. |
 | PUT/PATCH/DELETE | /api/safety/incidents/{id}/ | Staff + CSRF | Staff moderation/update or deletion actions. |
