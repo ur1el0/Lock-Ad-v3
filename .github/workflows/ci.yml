@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+
+permissions:
+  contents: read
+
+jobs:
+  compose:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate local and production Compose configuration
+        run: |
+          cp backend/.env.example backend/.env
+          docker compose --env-file backend/.env config --quiet
+          docker compose --env-file backend/.env --profile production config --quiet
+
+  backend:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:15
+        env:
+          POSTGRES_DB: lockad_ci
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: ${{ github.run_id }}-ci-${{ github.run_attempt }}
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d lockad_ci"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      redis:
+        image: redis:7
+        ports:
+          - 6379:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    defaults:
+      run:
+        working-directory: backend
+    env:
+      DJANGO_DEBUG: "False"
+      DJANGO_SECRET_KEY: ci-test-${{ github.sha }}
+      DJANGO_SECURE_COOKIES: "False"
+      DJANGO_ALLOWED_HOSTS: "127.0.0.1,localhost,testserver"
+      POSTGRES_DB: lockad_ci
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${{ github.run_id }}-ci-${{ github.run_attempt }}
+      POSTGRES_HOST: 127.0.0.1
+      POSTGRES_PORT: 5432
+      REDIS_HOST: 127.0.0.1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: backend/requirements.txt
+      - run: python -m pip install --upgrade pip
+      - run: python -m pip install -r requirements.txt
+      - run: python manage.py check
+      - run: python manage.py test
+      - run: python manage.py makemigrations --check --dry-run
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run build

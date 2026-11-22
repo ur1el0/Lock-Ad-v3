@@ -45,9 +45,12 @@ publish the media directory through a debug-mode static route. Do not configure
 a public object-storage or web-server media URL for these files without adding
 equivalent access control.
 
-The application currently does not define a product-level retention period for
-incident reports or uploaded evidence. Decide and document retention, deletion,
-backup handling, and any user-facing notice before production use.
+The application has no default photo-retention period. An operator may set
+`INCIDENT_IMAGE_RETENTION_DAYS` after the retention policy is approved; the
+scheduled job removes expired photos from live storage while keeping report
+records. Decide and document the retention window, backup handling, and any
+user-facing notice before production use. Existing backups may retain copies
+after a live photo is deleted.
 
 ## Operational checklist
 
