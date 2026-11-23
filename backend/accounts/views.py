@@ -10,7 +10,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import AllowAny, IsAuthenticated
 from rest_framework.response import Response
 
-from .serializers import RegisterSerializer, UserSerializer
+from .serializers import LoginSerializer, RegisterSerializer, UserSerializer
 
 
 @api_view(['GET'])
@@ -36,14 +36,10 @@ def register_view(request):
 @permission_classes([AllowAny])
 @csrf_protect
 def login_view(request):
-    username = request.data.get('username', '').strip()
-    password = request.data.get('password', '')
-
-    if not username or not password:
-        return Response(
-            {'detail': 'Username and password are required.'},
-            status=status.HTTP_400_BAD_REQUEST,
-        )
+    serializer = LoginSerializer(data=request.data)
+    serializer.is_valid(raise_exception=True)
+    username = serializer.validated_data['username']
+    password = serializer.validated_data['password']
 
     user = authenticate(request, username=username, password=password)
     if user is None:

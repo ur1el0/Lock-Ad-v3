@@ -13,6 +13,11 @@ class UserSerializer(serializers.ModelSerializer):
         read_only_fields = fields
 
 
+class LoginSerializer(serializers.Serializer):
+    username = serializers.CharField(max_length=150, trim_whitespace=True)
+    password = serializers.CharField(write_only=True, trim_whitespace=False)
+
+
 class RegisterSerializer(serializers.Serializer):
     username = serializers.CharField(max_length=150, trim_whitespace=True)
     email = serializers.EmailField()

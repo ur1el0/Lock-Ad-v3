@@ -107,6 +107,16 @@ class AuthenticationTests(APITestCase):
         response = self.post_with_csrf(client, 'auth-login', {}, token)
         self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
 
+    def test_login_rejects_non_string_username(self):
+        client, token = self.csrf_client()
+        response = self.post_with_csrf(
+            client,
+            'auth-login',
+            {'username': ['invalid'], 'password': self.password},
+            token,
+        )
+        self.assertEqual(response.status_code, status.HTTP_400_BAD_REQUEST)
+
     def test_login_rejects_invalid_credentials(self):
         self.create_user()
         client, token = self.csrf_client()
